@@ -1,0 +1,93 @@
+* {
+    color: white;
+}
+
+body {
+    background-color: rgb(18 18 19);
+}
+
+a {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+a:last-of-type {
+    padding-bottom: 20px;
+}
+
+.board {
+    width: 350px;
+    height: 420px;
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    grid-gap: 5px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 5px;
+}
+
+.guess-input {
+    display: flex;
+    flex-direction: column;
+}
+
+input[type="text"] {
+    font-size: 2rem;
+    line-height: 2rem;
+    font-family: monospace;
+    width: 7rem;
+    color: black;
+}
+
+.submit {
+    color: black;
+}
+
+.letter {
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    line-height: 2rem;
+    font-weight: bold;
+    vertical-align: middle;
+    box-sizing: border-box;
+    color: white;
+    text-transform: uppercase;
+    user-select: none;
+    height: 100%;
+}
+
+.empty-letter {
+    border: 1px solid #3a3a3c;
+    height: 100%;
+}
+
+.correct-letter {
+    background-color: #538d4e;
+}
+
+.incorrect-letter {
+    background-color: #3a3a3c;
+}
+
+.incorrectly-placed-letter {
+    background-color: #b59f3b;
+}
+
+.game {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/*# sourceMappingURL=index.4e007086.css.map */
