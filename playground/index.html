@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <link href="./public/main.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="header">
+            <div>View output as</div>
+            <select>
+                <option id="view-ts" onclick="viewTypescript();">Typescript</option>
+                <option id="view-js" onclick="viewJavascript();">Javascript</option>
+                <option id="view-derw" onclick="viewDerw();">Derw</option>
+                <option id="view-elm" onclick="viewElm();">Elm</option>
+            </select>
+        </div>
+        <div class="root">
+            <code-editor id="code-editor"></code-editor>
+            <code-editor id="output" readonly="true"></code-editor>
+        </div>
+        <script src="./main.js" type="text/javascript"></script>
+    </body>
+</html>

@@ -1,0 +1,48 @@
+* {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace !important;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+}
+
+.header > div {
+    padding-right: 10px;
+}
+
+.header > .active {
+    border: 1px solid red;
+}
+
+.root {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+    font-size: 20px;
+}
+
+#code-editor {
+    height: 100%;
+    flex: 1;
+    margin-right: 10px;
+}
+
+#output {
+    height: 100%;
+    flex: 1;
+}
+
+.codeflask {
+    width: 50%;
+}
+
+.codeflask__flatten {
+    font-size: 20px !important;
+}
