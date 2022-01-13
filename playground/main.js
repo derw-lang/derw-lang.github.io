@@ -6325,6 +6325,7 @@ const ${constDef.name}: ${typeDef} = ${body};
   window.viewJavascript = () => setMode("javascript");
   window.viewTypescript = () => setMode("typescript");
   window.viewDerw = () => setMode("derw");
+  window.view = (value) => setMode(value);
 
   // src/Main.ts
   var main = newEditor("root");

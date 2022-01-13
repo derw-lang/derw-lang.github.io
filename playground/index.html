@@ -5,11 +5,11 @@
     <body>
         <div class="header">
             <div>View output as</div>
-            <select>
-                <option id="view-ts" onclick="viewTypescript();">Typescript</option>
-                <option id="view-js" onclick="viewJavascript();">Javascript</option>
-                <option id="view-derw" onclick="viewDerw();">Derw</option>
-                <option id="view-elm" onclick="viewElm();">Elm</option>
+            <select onchange="view(this.value)"">
+                <option id="view-ts" value="typescript">Typescript</option>
+                <option id="view-js" value="javascript">Javascript</option>
+                <option id="view-derw" value="derw">Derw</option>
+                <option id="view-elm" value="elm">Elm</option>
             </select>
         </div>
         <div class="root">
