@@ -1,5 +1,6 @@
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Derw</title>
         <link rel="stylesheet" href="public/index.css">
 
@@ -10,7 +11,7 @@
             <div class="punchline">
                 <img class="logo" src="public/logo.png">
                 <h2 class="title">
-                    Derw: a simpler way of leveraging types on Javascript platforms.
+                    Derw: a short-but-sweet language to leverage types on Javascript platforms.
                 </h2>
             </div>
         </div>
@@ -25,6 +26,8 @@
                 An ML-language that compiles to TypeScript or JavaScript, with types.
                 <pre>
                     <code class="language-elm">
+import "./String" as String
+
 type alias Person = {
     name: string,
     age: number
@@ -49,6 +52,8 @@ sayHiToAnimal animal =
             <div class="why">
                 <h3>Why?</h3>
                 You're writing TypeScript, but miss the simplicity of Elm. Taking a types-first approach requires a lot of boilerplate or magical libraries. Writing tsx with React feels wrong. Luckily, Derw is there for you. With interop for TypeScript, Derw allows you to work on your existing codebases and projects in a simpler manner than Elm, while providing you with familiar libraries like the Html package built on the model-view-update structure.
+
+                <span><a href="https://derw.substack.com/p/why-derw-an-elm-like-language-that?utm_campaign=homepage">Read the announcement blogpost for more info on why</a></span>
             </div>
 
             <div class="how">
@@ -56,13 +61,18 @@ sayHiToAnimal animal =
                 Derw compiles to TypeScript, generating type-safe code. It has a type system to verify that Derw code is correctly typed. Through generating TypeScript it is possible to ensure that interop code between Derw and TypeScript is typesafe.
             </div>
 
-            <div class="Features">
+            <div class="features">
                 <h3>Features</h3>
                 <ul>
                     <li>Testing via <code>derw test</code></li>
                     <li>Packages via <code>derw install</code></li>
                     <li>Html via <code>coed</code></li>
                 </ul>
+            </div>
+
+            <div class="changelog">
+                <h3>Changelog</h3>
+                <a href="https://derw.substack.com/p/derw-status-december-2021-parsing?r=12bwp3&utm_campaign=homepage&utm_medium=web">December 2021</a>
             </div>
         </div>
 

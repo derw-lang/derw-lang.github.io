@@ -42,3 +42,14 @@
     text-align: left;
     justify-content: center;
 }
+
+.features > ul > li {
+    list-style-type: none;
+}
+
+@media (max-width: 600px) {
+    .secondary-screen > div {
+        width: 90% !important;
+        min-width: 0px !important;
+    }
+}
