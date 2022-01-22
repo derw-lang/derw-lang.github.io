@@ -4,29 +4,28 @@
         <title>Derw</title>
         <link rel="stylesheet" href="public/index.css">
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/monokai.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/agate.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     </head>
     <body>
-        <div class="welcome-screen">
-            <div class="punchline">
-                <img class="logo" src="public/logo.png">
-                <h2 class="title">
-                    Derw: a short-but-sweet language to leverage types on Javascript platforms.
-                </h2>
-            </div>
-        </div>
-        <div class="secondary-screen">
-            <div class="install">
-                <h3>Install</h3>
-                <pre><code class="language-bash">npm install derw</code></pre>
-                Or check out the <a href="https://github.com/eeue56/derw">repo on Github</a>
-            </div>
-            <div class="what">
-                <h3>What?</h3>
-                An ML-language that compiles to TypeScript or JavaScript, with types.
+        <div class="wrapper">
+
+            <section class="hero-banner">
+                <img class="logo" src="public/derw-logo-transparent.png">
+                <div class="hero-banner-text">
+                    <h1 class="title">
+                        Derw
+                    </h1>
+                    <h2 class="tagline">
+                        An Elm-like language that compiles to type-safe TypeScript or JavaScript.
+                    </h2>
+                </div>
+            </section>
+
+            <section class="example">
+                <h3>How it looks</h3>
                 <pre>
-                    <code class="language-elm">
-import "./String" as String
+                    <code class="language-elm">import "./String" as String
 
 type alias Person = {
     name: string,
@@ -35,49 +34,67 @@ type alias Person = {
 
 sayHi: Person -> string
 sayHi person =
-    "Hello, " + person.name
+    "Hello, " + person.name</code></pre>
+                <p>
+                    <i class="small-text">For more examples see <a href="examples/wordle/index.html" class="link">Wordle</a>, <a href="https://github.com/eeue56/derw/tree/main/examples/advent_of_code" class="link">Advent of Code</a>, <a href="https://github.com/derw-lang/examples/blob/main/src/Button.derw" class="link">Button</a> and <a href="https://github.com/derw-lang/examples/blob/main/src/TextInput.derw" class="link">TextInput</a>.</i>
+                </p>
+                <p>
+                    Try it out on the <a class="button" href="playground/index.html">Playground</a>
+                </p>
+            </section>
 
-type Animal =
-    Dog { name: string }
-    | Cat { lives: number }
-
-sayHiToAnimal: Animal -> string
-sayHiToAnimal animal =
-    case animal of
-        Dog { name } -> "Who is a good boy? " + name + " is!"
-        Cat { lives } -> "You have " + (String.fromNumber lives) + " lives remaining"
-                    </code>
-                </pre>
-            </div>
-            <div class="why">
-                <h3>Why?</h3>
-                You're writing TypeScript, but miss the simplicity of Elm. Taking a types-first approach requires a lot of boilerplate or magical libraries. Writing tsx with React feels wrong. Luckily, Derw is there for you. With interop for TypeScript, Derw allows you to work on your existing codebases and projects in a simpler manner than Elm, while providing you with familiar libraries like the Html package built on the model-view-update structure.
-
-                <span><a href="https://derw.substack.com/p/why-derw-an-elm-like-language-that?utm_campaign=homepage">Read the announcement blogpost for more info on why</a></span>
-            </div>
-
-            <div class="how">
-                <h3>How?</h3>
-                Derw compiles to TypeScript, generating type-safe code. It has a type system to verify that Derw code is correctly typed. Through generating TypeScript it is possible to ensure that interop code between Derw and TypeScript is typesafe.
-            </div>
-
-            <div class="features">
+            <section class="features">
                 <h3>Features</h3>
-                <ul>
-                    <li>Testing via <code>derw test</code></li>
-                    <li>Packages via <code>derw install</code></li>
-                    <li>Html via <code>coed</code></li>
-                </ul>
-            </div>
 
-            <div class="changelog">
+                <ul>
+                    <li>Compiles to TypeScript, JavaScript or Elm</li>
+                    <li>Compiles type-safe code</li>
+                    <li>Can be used for frontend and backend</li>
+                </ul>
+                <p>
+                    Derw is still in its infancy. For a full list of features, see <a href="https://github.com/eeue56/derw/#roadmap" class="link">the Derw roadmap</a>.
+                </p>
+            </section>
+
+            <section class="install">
+                <h3>Install</h3>
+                <pre><code class="language-bash">npm install derw</code></pre>
+                <p>
+                    Or check out the <a class="link" href="https://github.com/eeue56/derw">repository on Github</a>.
+                </p>
+            </section>
+
+            <section class="motivation">
+
+                <h3>Why Derw?</h3>
+                <p>
+                    You're writing TypeScript, but miss the simplicity of Elm. Taking a types-first approach requires a lot of boilerplate or magical libraries. Writing tsx with React feels wrong. Luckily, Derw is there for you. With interop for TypeScript, Derw allows you to work on your existing codebases and projects in a simpler manner than Elm, while providing you with familiar libraries like the Html package built on the model-view-update structure.
+                </p>
+                <p>
+                    Read more on <a class="link" href="https://derw.substack.com/p/why-derw-an-elm-like-language-that?utm_campaign=homepage">Why Derw?</a>
+                </p>
+            </section>
+
+            <section class="changelog">
                 <h3>Changelog</h3>
-                <a href="https://derw.substack.com/p/derw-status-december-2021-parsing?r=12bwp3&utm_campaign=homepage&utm_medium=web">December 2021</a>
-            </div>
+                <ul>
+                    <li><a class="link" href="https://derw.substack.com/p/derw-status-january-2022-part-1-html?utm_campaign=homepage&utm_medium=web">January 2022 - Html support, infrastructure, and kernel code</a></li>
+                    <li><a class="link" href="https://derw.substack.com/p/derw-status-december-2021-parsing?r=12bwp3&utm_campaign=homepage&utm_medium=web">December 2021 - parsing, packages, and testing</a></li>
+                </ul>
+            </section>
+
+            <section class="follow">
+                <div class="follow-links">
+                    <a href="https://github.com/eeue56/derw/" class="link"><i class="fa fa-github"></i> Github</a>
+                    <a href="https://twitter.com/derwlang" class="link"><i class="fa fa-twitter"></i> Twitter</a>
+                    <a href="https://derw.substack.com/" class="link"><i class="fa fa-rss"></i> Substack</a>
+                </div>
+            </section>
         </div>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/languages/elm.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/languages/typescript.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/languages/bash.min.js"></script>
         <script>hljs.highlightAll();</script>
     </body>
