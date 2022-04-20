@@ -1,0 +1,152 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+body {
+    background-color: #E4D9FF;
+    color: #30343F;
+    line-height: 30px;
+}
+
+.button {
+    background-color: #30343f;
+    cursor: pointer;
+    color: #fafaff;
+    font-size: 3vh;
+    padding-top: 2vh;
+    padding-bottom: 2vh;
+    border: 1px solid #fafaff;
+    box-sizing: border-box;
+}
+
+.button.yes {
+    border: 1px solid #FAFAFF;
+    margin-bottom: 10px;
+}
+
+.button.no {
+    border: 1px solid #273469;
+}
+
+.instruction {
+    font-size: 4vh;
+    line-height: initial;
+}
+
+.instruction > a:visited, .instruction > p > a:visited {
+    color: inherit;
+}
+
+.instruction > .button.next, .button.save {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+.button.hint {
+    position: absolute;
+    left: 0;
+    bottom: 7vh;
+    width: 100%;
+}
+
+.button-summary {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+}
+
+.button.reset-position {
+    text-align: center;
+    padding-left: 2vw;
+    padding-right: 2vw;
+}
+
+
+.preference, .summary, .location, .instructions {
+    text-align: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.location > div > div:not(.button) {
+    margin-bottom: 5px;
+}
+
+.location-picture {
+    max-width: 100%;
+    max-height: 30vh;
+}
+
+.location-picture-delete{
+    text-align: left;
+    position: relative;
+    top: 45px;
+    left: 10px;
+    font-size: 30px;
+    cursor: pointer;
+}
+
+.location-summaries {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-gap: 0;
+    width: 100vw;
+    justify-content: space-between;
+}
+
+.location-summaries-instruction {
+    text-align: center;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.location-summary {
+    width: 33vw;
+    height: calc(calc(33vh + 18vh) - 44px);
+    border: 1px solid #273469;
+    box-sizing: border-box;
+}
+
+.location-image-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 25vh;
+    object-fit: contain;
+}
+
+.location-image-container > img {
+    height: 25vh;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.location-summary > .location-name-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.location-summary > .location-name-container > .location-name {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 20vh;
+    color: #fafaff;
+    background-color: #273469;
+    width: 100%;
+    text-align: center;
+    padding: 0px 0px;
+    word-wrap: break-word;
+    cursor: pointer;
+}
