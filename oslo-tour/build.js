@@ -1748,8 +1748,8 @@ ${whitespace}</${node3.tag}>`;
     hint: "There's an elephant nearby"
   }, {
     name: "Your nearest store",
-    lat: 59.9306,
-    lon: 10.7574489,
+    lat: 0,
+    lon: 0,
     clue: "Find 5 things you've never tried before",
     hint: "Try an Asian store if you can't find anything in Kiwi"
   }, {
@@ -1893,6 +1893,20 @@ ${whitespace}</${node3.tag}>`;
     return map2(function(x) {
       return x.location;
     }, sortBy(sortingFunction, locationsWithDistance(coord, xs)));
+  }
+  function closestLocation(coord, xs) {
+    const _res699739519 = sortLocationsByDistance(coord, xs);
+    switch (_res699739519.length) {
+      case _res699739519.length: {
+        if (_res699739519.length >= 1) {
+          const [value, ...rest] = _res699739519;
+          return Just({ value });
+        }
+      }
+      default: {
+        return Nothing({});
+      }
+    }
   }
 
   // derw-packages/derw-lang/web/src/History.ts
@@ -2279,6 +2293,11 @@ ${whitespace}</${node3.tag}>`;
       kind: "ResetPosition"
     }, args);
   }
+  function GotPositionAndGoToNearestLocation(args) {
+    return __spreadValues({
+      kind: "GotPositionAndGoToNearestLocation"
+    }, args);
+  }
   function update(msg, model, send) {
     const _res108417 = msg;
     switch (_res108417.kind) {
@@ -2492,9 +2511,28 @@ ${whitespace}</${node3.tag}>`;
         }
         ;
       }
+      case "GotPositionAndGoToNearestLocation": {
+        const { position } = _res108417;
+        const nearest = closestLocation(position, model.locations);
+        const _res1825779806 = nearest;
+        switch (_res1825779806.kind) {
+          case "Nothing": {
+            return model;
+          }
+          case "Just": {
+            const { value } = _res1825779806;
+            return __spreadProps(__spreadValues({}, model), {
+              currentLocation: Just({ value }),
+              pageMode: toMode(GameMode({})),
+              showHint: false
+            });
+          }
+        }
+        ;
+      }
       case "ResetPosition": {
         const get = getCurrentPosition2(function(pos) {
-          return main2.send(GotPosition({ position: pos }));
+          return main2.send(GotPositionAndGoToNearestLocation({ position: pos }));
         }, function(_) {
           return Noop({});
         });
@@ -2567,7 +2605,7 @@ ${whitespace}</${node3.tag}>`;
     const summariesToBe = map2(viewLocationSummaryToBe, without);
     return div2([], [], [div2([onClick(function(_) {
       return ResetPosition({});
-    })], [class_2("button reset-position")], [text2("Click here to reset your current position")]), div2([], [class_2("location-summaries-instruction")], [text2("Click the picture to download it. Click the location name to go to that location's page.")]), div2([], [class_2("location-summaries")], append(summaries, summariesToBe))]);
+    })], [class_2("button reset-position")], [text2("Click here to go to the nearest location to your current position")]), div2([], [class_2("location-summaries-instruction")], [text2("Click the picture to download it. Click the location name to go to that location's page.")]), div2([], [class_2("location-summaries")], append(summaries, summariesToBe))]);
   }
   function viewPreference(preference) {
     return div2([], [], [text2(preference.question), div2([onClick(function(_) {
