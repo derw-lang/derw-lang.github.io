@@ -1,32 +1,62 @@
+:root {
+    --bg-color: #E4D9FF;
+    --dark-font-color: #30343F;
+    --button-bg-color: #30343f;
+    --button-font-color: #fafaff;
+    --yes-button-border-color: #FAFAFF;
+    --no-button-border-color: ##273469;
+    --summary-border-color: #273469;
+    --summary-name-font-color: #fafaff;
+    --summary-name-bg-color: #273469;
+
+
+    --capri: #30c5ffff;
+    --gunmetal: #2a2d34ff;
+    --russian-green: #5c946eff;
+    --green-sheen: #80c2afff;
+    --blizzard-blue: #a0dde6ff;
+
+
+    --bg-color: #C8EBF0;
+    --dark-font-color: #2a2d34ff;
+    --button-bg-color: #5c946eff;
+    --button-font-color: #2a2d34ff;
+    --yes-button-border-color: #a0dde6ff;
+    --no-button-border-color: ##5c946eff;
+    --summary-border-color: #5c946eff;
+    --summary-name-font-color: #2a2d34ff;
+    --summary-name-bg-color: #5c946eff;
+}
+
 * {
     padding: 0;
     margin: 0;
 }
 
 body {
-    background-color: #E4D9FF;
-    color: #30343F;
+    background-color: var(--bg-color);
+    color: var(--dark-font-color);
     line-height: 30px;
 }
 
 .button {
-    background-color: #30343f;
+    background-color: var(--button-bg-color);
     cursor: pointer;
-    color: #fafaff;
+    color: var(--button-font-color);
     font-size: 3vh;
     padding-top: 2vh;
     padding-bottom: 2vh;
-    border: 1px solid #fafaff;
+    border: 1px solid var(--button-font-color);
     box-sizing: border-box;
 }
 
 .button.yes {
-    border: 1px solid #FAFAFF;
+    border: 1px solid var(--yes-button-border-color);
     margin-bottom: 10px;
 }
 
 .button.no {
-    border: 1px solid #273469;
+    border: 1px solid var(--no-button-border-color);
 }
 
 .instruction {
@@ -110,7 +140,7 @@ body {
 .location-summary {
     width: 33vw;
     height: calc(calc(33vh + 18vh) - 44px);
-    border: 1px solid #273469;
+    border: 1px solid var(--summary-border-color);
     box-sizing: border-box;
 }
 
@@ -142,8 +172,8 @@ body {
     justify-content: center;
     align-items: center;
     height: 20vh;
-    color: #fafaff;
-    background-color: #273469;
+    color: var(--summary-name-font-color);
+    background-color: var(--summary-name-bg-color);
     width: 100%;
     text-align: center;
     padding: 0px 0px;
@@ -152,8 +182,11 @@ body {
 }
 
 .loading-gps {
+    text-align: center;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: center;
     align-items: center;
+    height: 100%;
+    font-size: 4vh;
 }

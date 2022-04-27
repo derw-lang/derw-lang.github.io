@@ -1653,7 +1653,7 @@ ${whitespace}</${node3.tag}>`;
   }, {
     name: "Floating saunas",
     lat: 59.9072864,
-    lon: 10.7512378,
+    lon: 10.7490491,
     clue: "Find the tallest sauna",
     hint: "They should be in the water next to the path"
   }, {
@@ -2706,7 +2706,7 @@ ${whitespace}</${node3.tag}>`;
     const _res1012704759 = model.pageMode;
     switch (_res1012704759.kind) {
       case "LoadingGpsMode": {
-        return div2([], [class_2("loading-gps")], [text2("Loading location info")]);
+        return div2([], [class_2("loading-gps")], [div2([], [], [text2("Loading location info")])]);
       }
       case "InstructionsMode": {
         return viewInstructions(model.instructions);
