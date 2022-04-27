@@ -2250,7 +2250,8 @@ ${whitespace}</${node3.tag}>`;
     locationPictures: [],
     database: Nothing({}),
     showHint: false,
-    position: Nothing({})
+    position: Nothing({}),
+    shouldIgnorePositionGetting: false
   };
   function NextInstruction(args) {
     return __spreadValues({
@@ -2352,9 +2353,14 @@ ${whitespace}</${node3.tag}>`;
       kind: "GotPositionAndGoToNearestLocation"
     }, args);
   }
-  function FailedToGetLocation(args) {
+  function FailedToGetPosition(args) {
     return __spreadValues({
-      kind: "FailedToGetLocation"
+      kind: "FailedToGetPosition"
+    }, args);
+  }
+  function SkipPosition(args) {
+    return __spreadValues({
+      kind: "SkipPosition"
     }, args);
   }
   function update(msg, model, send) {
@@ -2522,17 +2528,22 @@ ${whitespace}</${node3.tag}>`;
       }
       case "GotPosition": {
         const { position } = _res108417;
-        const _res1012704759 = model.pageMode;
-        switch (_res1012704759.kind) {
-          case "LoadingGpsMode": {
-            return __spreadProps(__spreadValues({}, model), {
-              position: Just({ value: position }),
-              pageMode: nextPageMode(model.pageMode)
-            });
+        if (model.shouldIgnorePositionGetting) {
+          return __spreadProps(__spreadValues({}, model), { shouldIgnorePositionGetting: false });
+        } else {
+          const _res1012704759 = model.pageMode;
+          switch (_res1012704759.kind) {
+            case "LoadingGpsMode": {
+              return __spreadProps(__spreadValues({}, model), {
+                position: Just({ value: position }),
+                pageMode: nextPageMode(model.pageMode)
+              });
+            }
+            default: {
+              return model;
+            }
           }
-          default: {
-            return model;
-          }
+          ;
         }
         ;
       }
@@ -2572,21 +2583,26 @@ ${whitespace}</${node3.tag}>`;
       }
       case "GotPositionAndGoToNearestLocation": {
         const { position } = _res108417;
-        const nearest = closestLocationWithoutPicture(position, model.locations, model.locationPictures);
-        const _res1825779806 = nearest;
-        switch (_res1825779806.kind) {
-          case "Nothing": {
-            return model;
+        if (model.shouldIgnorePositionGetting) {
+          return __spreadProps(__spreadValues({}, model), { shouldIgnorePositionGetting: false });
+        } else {
+          const nearest = closestLocationWithoutPicture(position, model.locations, model.locationPictures);
+          const _res1825779806 = nearest;
+          switch (_res1825779806.kind) {
+            case "Nothing": {
+              return model;
+            }
+            case "Just": {
+              const { value } = _res1825779806;
+              return __spreadProps(__spreadValues({}, model), {
+                currentLocation: Just({ value }),
+                position: Just({ value: position }),
+                pageMode: toMode(GameMode({})),
+                showHint: false
+              });
+            }
           }
-          case "Just": {
-            const { value } = _res1825779806;
-            return __spreadProps(__spreadValues({}, model), {
-              currentLocation: Just({ value }),
-              position: Just({ value: position }),
-              pageMode: toMode(GameMode({})),
-              showHint: false
-            });
-          }
+          ;
         }
         ;
       }
@@ -2594,13 +2610,20 @@ ${whitespace}</${node3.tag}>`;
         const get = getCurrentPosition2(function(pos) {
           return main2.send(GotPositionAndGoToNearestLocation({ position: pos }));
         }, function(_) {
-          return FailedToGetLocation({});
+          return FailedToGetPosition({});
         });
         return __spreadProps(__spreadValues({}, model), { pageMode: LoadingGpsMode({}) });
       }
-      case "FailedToGetLocation": {
+      case "FailedToGetPosition": {
         const blank = globalThis.console.log("failed to get location");
         return __spreadProps(__spreadValues({}, model), { pageMode: GameMode({}) });
+      }
+      case "SkipPosition": {
+        return __spreadProps(__spreadValues({}, model), {
+          pageMode: GameMode({}),
+          currentLocation: Nothing({}),
+          shouldIgnorePositionGetting: true
+        });
       }
     }
   }
@@ -2706,7 +2729,9 @@ ${whitespace}</${node3.tag}>`;
     const _res1012704759 = model.pageMode;
     switch (_res1012704759.kind) {
       case "LoadingGpsMode": {
-        return div2([], [class_2("loading-gps")], [div2([], [], [text2("Loading location info")])]);
+        return div2([onClick(function(_) {
+          return SkipPosition({});
+        })], [class_2("loading-gps")], [div2([], [], [text2("Loading location info")]), div2([], [], [text2(". Click to skip GPS checking")])]);
       }
       case "InstructionsMode": {
         return viewInstructions(model.instructions);
