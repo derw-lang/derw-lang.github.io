@@ -150,3 +150,10 @@ body {
     word-wrap: break-word;
     cursor: pointer;
 }
+
+.loading-gps {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}

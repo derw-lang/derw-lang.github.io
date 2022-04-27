@@ -1890,9 +1890,7 @@ ${whitespace}</${node3.tag}>`;
     }
   }
   function sortLocationsByDistance(coord, xs) {
-    return map2(function(x) {
-      return x.location;
-    }, sortBy(sortingFunction, locationsWithDistance(coord, xs)));
+    return map2((arg0) => arg0.location, sortBy(sortingFunction, locationsWithDistance(coord, xs)));
   }
   function closestLocation(coord, xs) {
     const _res699739519 = sortLocationsByDistance(coord, xs);
@@ -1905,6 +1903,67 @@ ${whitespace}</${node3.tag}>`;
       }
       default: {
         return Nothing({});
+      }
+    }
+  }
+  function locationsWithPictures(xs, pictures) {
+    const _res3835 = xs;
+    switch (_res3835.length) {
+      case _res3835.length: {
+        if (_res3835.length >= 1) {
+          const [x, ...ys] = _res3835;
+          const _res1673260402 = findLocationPicture(pictures, x);
+          switch (_res1673260402.kind) {
+            case "Nothing": {
+              return locationsWithPictures(ys, pictures);
+            }
+            case "Just": {
+              const { value } = _res1673260402;
+              return [x, ...locationsWithPictures(ys, pictures)];
+            }
+          }
+          ;
+        }
+      }
+      default: {
+        return [];
+      }
+    }
+  }
+  function locationsWithoutPictures(xs, pictures) {
+    const _res3835 = xs;
+    switch (_res3835.length) {
+      case _res3835.length: {
+        if (_res3835.length >= 1) {
+          const [x, ...ys] = _res3835;
+          const _res1673260402 = findLocationPicture(pictures, x);
+          switch (_res1673260402.kind) {
+            case "Nothing": {
+              return [x, ...locationsWithoutPictures(ys, pictures)];
+            }
+            case "Just": {
+              const { value } = _res1673260402;
+              return locationsWithoutPictures(ys, pictures);
+            }
+          }
+          ;
+        }
+      }
+      default: {
+        return [];
+      }
+    }
+  }
+  function closestLocationWithoutPicture(coord, xs, pictures) {
+    const with_ = locationsWithPictures(xs, pictures);
+    const without = locationsWithoutPictures(xs, pictures);
+    const _res1355153608 = without;
+    switch (_res1355153608.length) {
+      case 0: {
+        return closestLocation(coord, with_);
+      }
+      default: {
+        return closestLocation(coord, without);
       }
     }
   }
@@ -2193,11 +2252,6 @@ ${whitespace}</${node3.tag}>`;
     showHint: false,
     position: Nothing({})
   };
-  function Noop(args) {
-    return __spreadValues({
-      kind: "Noop"
-    }, args);
-  }
   function NextInstruction(args) {
     return __spreadValues({
       kind: "NextInstruction"
@@ -2296,6 +2350,11 @@ ${whitespace}</${node3.tag}>`;
   function GotPositionAndGoToNearestLocation(args) {
     return __spreadValues({
       kind: "GotPositionAndGoToNearestLocation"
+    }, args);
+  }
+  function FailedToGetLocation(args) {
+    return __spreadValues({
+      kind: "FailedToGetLocation"
     }, args);
   }
   function update(msg, model, send) {
@@ -2513,7 +2572,7 @@ ${whitespace}</${node3.tag}>`;
       }
       case "GotPositionAndGoToNearestLocation": {
         const { position } = _res108417;
-        const nearest = closestLocation(position, model.locations);
+        const nearest = closestLocationWithoutPicture(position, model.locations, model.locationPictures);
         const _res1825779806 = nearest;
         switch (_res1825779806.kind) {
           case "Nothing": {
@@ -2523,6 +2582,7 @@ ${whitespace}</${node3.tag}>`;
             const { value } = _res1825779806;
             return __spreadProps(__spreadValues({}, model), {
               currentLocation: Just({ value }),
+              position: Just({ value: position }),
               pageMode: toMode(GameMode({})),
               showHint: false
             });
@@ -2534,9 +2594,13 @@ ${whitespace}</${node3.tag}>`;
         const get = getCurrentPosition2(function(pos) {
           return main2.send(GotPositionAndGoToNearestLocation({ position: pos }));
         }, function(_) {
-          return Noop({});
+          return FailedToGetLocation({});
         });
-        return model;
+        return __spreadProps(__spreadValues({}, model), { pageMode: LoadingGpsMode({}) });
+      }
+      case "FailedToGetLocation": {
+        const blank = globalThis.console.log("failed to get location");
+        return __spreadProps(__spreadValues({}, model), { pageMode: GameMode({}) });
       }
     }
   }
@@ -2642,7 +2706,7 @@ ${whitespace}</${node3.tag}>`;
     const _res1012704759 = model.pageMode;
     switch (_res1012704759.kind) {
       case "LoadingGpsMode": {
-        return div2([], [], [text2("Loading location info")]);
+        return div2([], [class_2("loading-gps")], [text2("Loading location info")]);
       }
       case "InstructionsMode": {
         return viewInstructions(model.instructions);
@@ -2662,21 +2726,31 @@ ${whitespace}</${node3.tag}>`;
         const _res938057609 = model.currentLocation;
         switch (_res938057609.kind) {
           case "Nothing": {
-            const sortedLocations = function() {
+            const index = firstLocationWithoutPicture(model.locations, model.locationPictures, 0);
+            const location = function() {
               const _res901254734 = model.position;
               switch (_res901254734.kind) {
-                case "Nothing": {
-                  return model.locations;
-                }
                 case "Just": {
                   const { value } = _res901254734;
-                  return sortLocationsByDistance(value, model.locations);
+                  const _res260703118 = closestLocationWithoutPicture(value, model.locations, model.locationPictures);
+                  switch (_res260703118.kind) {
+                    case "Just": {
+                      const { value: value2 } = _res260703118;
+                      return value2;
+                    }
+                    case "Nothing": {
+                      return model.locations[index];
+                    }
+                  }
+                  ;
+                }
+                case "Nothing": {
+                  return model.locations[index];
                 }
               }
             }();
-            const index = firstLocationWithoutPicture(sortedLocations, model.locationPictures, 0);
             if (index < model.locations.length) {
-              return div2([], [class_2("location")], [viewLocation(model.showHint, model.locationPictures, sortedLocations[index])]);
+              return div2([], [class_2("location")], [viewLocation(model.showHint, model.locationPictures, location)]);
             } else {
               return div2([], [], [viewLocationsSummary(model.locationPictures, model.locations)]);
             }
