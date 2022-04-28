@@ -1035,10 +1035,10 @@ ${whitespace}</${node3.tag}>`;
         return node2("keygen", events, attributes, children);
       }
       exports.keygen = keygen2;
-      function label2(events, attributes, children) {
+      function label3(events, attributes, children) {
         return node2("label", events, attributes, children);
       }
-      exports.label = label2;
+      exports.label = label3;
       function legend2(events, attributes, children) {
         return node2("legend", events, attributes, children);
       }
@@ -1303,6 +1303,9 @@ ${whitespace}</${node3.tag}>`;
   }
   function input2(events, attributes) {
     return coed.input(events, attributes);
+  }
+  function label2(events, attributes, children) {
+    return coed.label(events, attributes, children);
   }
   function p2(events, attributes, children) {
     return coed.p(events, attributes, children);
@@ -2671,7 +2674,7 @@ ${whitespace}</${node3.tag}>`;
         }
       }
     }();
-    return div2([], [], [viewSummaryLink, picture, div2([], [], [text2(location.name)]), viewGoogleMapLink(location), div2([], [], [text2(location.clue)]), div2([on2("change", uploadPicture)], [attribute2("id", "file-upload")], [input2([], [attribute2("type", "file"), attribute2("capture", "file")])]), hint, save]);
+    return div2([], [], [viewSummaryLink, picture, div2([], [], [text2(location.name)]), viewGoogleMapLink(location), div2([], [], [text2(location.clue)]), div2([on2("change", uploadPicture)], [attribute2("id", "file-take")], [label2([], [attribute2("for", "take-a-picture")], [text2("Take a picture: ")]), input2([], [attribute2("id", "take-a-picture"), attribute2("type", "file"), attribute2("capture", "file")])]), div2([on2("change", uploadPicture)], [attribute2("id", "file-upload")], [label2([], [attribute2("for", "upload-a-picture")], [text2("Upload a picture: ")]), input2([], [attribute2("id", "upload-a-picture"), attribute2("type", "file")])]), hint, save]);
   }
   function viewLocationSummary(pair) {
     return div2([], [class_2("location-summary")], [a2([], [class_2("location-image-container"), attribute2("href", `${pair.picture.binary}`), attribute2("download", pair.location.name)], [img2([], [attribute2("src", `${pair.picture.binary}`)])]), div2([onClick(function(_) {
