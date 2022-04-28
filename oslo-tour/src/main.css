@@ -72,11 +72,11 @@
     --bg-color: var(--space-cadet);
     --dark-font-color: var(--silver);
     --button-bg-color: var(--silver);
-    --button-font-color: var(--space-cadet);
+    --button-font-color: black;
     --yes-button-border-color: var(--silver);
     --no-button-border-color: var(--white);
     --summary-border-color: var(--silver);
-    --summary-name-font-color: var(--space-cadet);
+    --summary-name-font-color: black;
     --summary-name-bg-color: var(--silver);
 }
 
@@ -89,6 +89,10 @@ body {
     background-color: var(--bg-color);
     color: var(--dark-font-color);
     line-height: 30px;
+}
+
+a:visited {
+    color: var(--mandarin);
 }
 
 .button {
