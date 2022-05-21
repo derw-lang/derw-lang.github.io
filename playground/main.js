@@ -5,18 +5,21 @@
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
-  var __copyProps = (to, from, except, desc) => {
-    if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames(from))
-        if (!__hasOwnProp.call(to, key) && key !== except)
-          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  var __reExport = (target, module, copyDefault, desc) => {
+    if (module && typeof module === "object" || typeof module === "function") {
+      for (let key of __getOwnPropNames(module))
+        if (!__hasOwnProp.call(target, key) && (copyDefault || key !== "default"))
+          __defProp(target, key, { get: () => module[key], enumerable: !(desc = __getOwnPropDesc(module, key)) || desc.enumerable });
     }
-    return to;
+    return target;
   };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target, mod));
+  var __toESM = (module, isNodeMode) => {
+    return __reExport(__markAsModule(__defProp(module != null ? __create(__getProtoOf(module)) : {}, "default", !isNodeMode && module && module.__esModule ? { get: () => module.default, enumerable: true } : { value: module, enumerable: true })), module);
+  };
 
   // node_modules/derw/build/types.js
   var require_types = __commonJS({
@@ -559,7 +562,7 @@
     "node_modules/derw/build/generators/derw.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
-      exports.generateDerw = void 0;
+      exports.generateDerw = exports.generateTypeAlias = void 0;
       var types_1 = require_types();
       var common_1 = require_common();
       function generateUnionType(syntax) {
@@ -574,7 +577,7 @@ ${common_1.prefixLines(tags, 4)}
 `.trim();
       }
       function generateProperty(syntax) {
-        return `${syntax.name}: ${generateType(syntax.type)}`;
+        return `${syntax.name}: ${generateTopLevelType(syntax.type)}`;
       }
       function generateTypeAlias(syntax) {
         const generatedProperties = syntax.properties.map(generateProperty);
@@ -586,6 +589,7 @@ type alias ${type} = {
 }
 `.trim();
       }
+      exports.generateTypeAlias = generateTypeAlias;
       function generateField(field) {
         const value = generateExpression(field.value);
         if (field.name === value) {
@@ -711,8 +715,8 @@ ${common_1.prefixLines(branches.join("\n\n"), 4)}
             return generateType(type_);
           }
           case "FixedType": {
-            if (type_.name === "List") {
-              return generateType(type_);
+            if (type_.args.length > 0 && type_.args[0].kind === "FixedType" && type_.args[0].args.length > 0) {
+              return `${type_.name} (${type_.args.map(generateTopLevelType).join(" ")})`;
             }
             const args = type_.args.filter((type_2) => type_2.kind === "GenericType" || type_2.kind === "FixedType");
             if (args.length === 0) {
@@ -721,7 +725,7 @@ ${common_1.prefixLines(branches.join("\n\n"), 4)}
             return `${type_.name} ${args.map(generateType).join(" ")}`;
           }
           case "FunctionType": {
-            return generateType(type_);
+            return "(" + type_.args.map(generateTopLevelType).join(" -> ") + ")";
           }
         }
       }
@@ -790,6 +794,10 @@ ${common_1.prefixLines(branches.join("\n\n"), 4)}
     <| ${right}`;
       }
       function generateModuleReference(moduleReference) {
+        if (moduleReference.path.length === 0) {
+          const right2 = generateExpression(moduleReference.value);
+          return `.${right2}`;
+        }
         const left = moduleReference.path.join(".");
         const right = generateExpression(moduleReference.value);
         return `${left}.${right}`;
@@ -800,7 +808,14 @@ ${common_1.prefixLines(branches.join("\n\n"), 4)}
         let output = [];
         for (const arg of functionCall.args) {
           switch (arg.kind) {
-            case "Constructor":
+            case "Constructor": {
+              if (arg.pattern.fields.length === 0) {
+                output.push(generateExpression(arg));
+              } else {
+                output.push("(" + generateExpression(arg) + ")");
+              }
+              break;
+            }
             case "FunctionCall": {
               output.push("(" + generateExpression(arg) + ")");
               break;
@@ -957,9 +972,9 @@ ${common_1.prefixLines(branches.join("\n\n"), 4)}
         const functionArgumentsTypes = function_.args.map((arg) => {
           switch (arg.kind) {
             case "FunctionArg":
-              return generateType(arg.type);
+              return generateTopLevelType(arg.type);
             case "AnonFunctionArg":
-              return generateType(arg.type);
+              return generateTopLevelType(arg.type);
           }
         }).join(" -> ");
         const functionArguments = function_.args.map((arg) => {
@@ -1020,7 +1035,13 @@ ${body}
         }
       }
       function generateDerw2(module2) {
-        return module2.body.map(generateBlock).filter((line) => line.length > 0).join("\n\n");
+        const importBlocks = module2.body.filter((block) => block.kind === "Import");
+        const nonImportBlocks = module2.body.filter((block) => block.kind !== "Import");
+        return [
+          ...importBlocks.map(generateBlock).filter((line) => line.length > 0).sort((a, b) => a === b ? 0 : a < b ? -1 : 1).join("\n"),
+          importBlocks.length > 0 ? "\n\n" : "",
+          ...nonImportBlocks.map(generateBlock).filter((line) => line.length > 0).join("\n\n")
+        ].join("");
       }
       exports.generateDerw = generateDerw2;
     }
@@ -1198,8 +1219,8 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
             return generateType(type_);
           }
           case "FixedType": {
-            if (type_.name === "List") {
-              return generateType(type_);
+            if (type_.args.length > 0 && type_.args[0].kind === "FixedType" && type_.args[0].args.length > 0) {
+              return `${type_.name} (${type_.args.map(generateTopLevelType).join(" ")})`;
             }
             const args = type_.args.filter((type_2) => type_2.kind === "GenericType" || type_2.kind === "FixedType");
             if (args.length === 0) {
@@ -1208,7 +1229,7 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
             return `${type_.name} ${args.map(generateType).join(" ")}`;
           }
           case "FunctionType": {
-            return generateType(type_);
+            return "(" + type_.args.map(generateTopLevelType).join(" -> ") + ")";
           }
         }
       }
@@ -1280,6 +1301,10 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
         "console.log": `Debug.log ""`
       };
       function generateModuleReference(moduleReference) {
+        if (moduleReference.path.length === 0) {
+          const right2 = generateExpression(moduleReference.value);
+          return `.${right2}`;
+        }
         const left = moduleReference.path.join(".");
         const right = generateExpression(moduleReference.value);
         const value = `${left}.${right}`;
@@ -1447,9 +1472,9 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
         const functionArgumentsTypes = function_.args.map((arg) => {
           switch (arg.kind) {
             case "FunctionArg":
-              return generateType(arg.type);
+              return generateTopLevelType(arg.type);
             case "AnonFunctionArg":
-              return generateType(arg.type);
+              return generateTopLevelType(arg.type);
           }
         }).join(" -> ");
         const functionArguments = function_.args.map((arg) => {
@@ -2284,7 +2309,7 @@ ${body}
         if (block.startsWith("type alias")) {
           return result_1.Ok("TypeAlias");
         }
-        if (block.startsWith("type")) {
+        if (block.startsWith("type ")) {
           return result_1.Ok("UnionType");
         }
         if (block.startsWith(" ") || block.startsWith("}")) {
@@ -2548,7 +2573,7 @@ ${body}
       }
       exports.flattenLeftPipe = flattenLeftPipe;
       function generateImportBlock(imports) {
-        return imports.modules.map((module2) => {
+        return imports.modules.filter((module2) => module2.name !== "globalThis").map((module2) => {
           if (module2.namespace === "Relative") {
             const withoutQuotes = module2.name.slice(1, -1);
             const name2 = module2.alias.kind === "just" ? module2.alias.value : utils_1.getNameFromPath(withoutQuotes);
@@ -2896,6 +2921,10 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
         return `${left}(${right})`;
       }
       function generateModuleReference(moduleReference) {
+        if (moduleReference.path.length === 0) {
+          const right2 = generateExpression(moduleReference.value);
+          return `(arg0) => arg0.${right2}`;
+        }
         const left = moduleReference.path.join(".");
         const right = generateExpression(moduleReference.value);
         return `${left}.${right}`;
@@ -2906,10 +2935,18 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
       }
       function generateLambda(lambda) {
         const args = lambda.args.join(", ");
-        const body = generateExpression(lambda.body);
-        return `
+        const isSimple = types_1.isSimpleValue(lambda.body.kind);
+        const body = common_1.prefixLines(generateExpression(lambda.body), isSimple ? 0 : 4);
+        if (isSimple) {
+          return `
 function(${args}) {
     return ${body};
+}
+`.trim();
+        }
+        return `
+function(${args}) {
+${body}
 }
 `.trim();
       }
@@ -3191,7 +3228,7 @@ type ${generateType(syntax.type)} = ${tags};
 `.trim();
       }
       function generateProperty(syntax) {
-        return `${syntax.name}: ${generateType(syntax.type)}`;
+        return `${syntax.name}: ${generateTopLevelType(syntax.type)}`;
       }
       function generateTypeAlias(syntax) {
         const generatedProperties = syntax.properties.map(generateProperty);
@@ -3246,21 +3283,21 @@ function ${type}(args: {${args}}): ${type} {
           return `[ ]`;
         if (list.items.length === 1)
           return `[ ${generateExpression(list.items[0])} ]`;
-        return `[ ${list.items.map(generateExpression).join(", ")} ]`;
+        return `[ ${list.items.map((item) => generateExpression(item)).join(", ")} ]`;
       }
-      function generateIfStatement(ifStatement) {
+      function generateIfStatement(ifStatement, parentTypeArguments) {
         const isSimpleIfBody = types_1.isSimpleValue(ifStatement.ifBody.kind);
         const isSimpleElseBody = types_1.isSimpleValue(ifStatement.elseBody.kind);
         const ifBodyPrefix = isSimpleIfBody ? "return " : "";
         const elseBodyPrefix = isSimpleElseBody ? "return " : "";
-        const maybeIfLetBody = ifStatement.ifLetBody.length > 0 ? "\n" + common_1.prefixLines(ifStatement.ifLetBody.map(generateBlock).join("\n"), 4) : "";
-        const ifBody = generateExpression(ifStatement.ifBody);
+        const maybeIfLetBody = ifStatement.ifLetBody.length > 0 ? "\n" + common_1.prefixLines(ifStatement.ifLetBody.map((block) => generateBlock(block, parentTypeArguments)).join("\n"), 4) : "";
+        const ifBody = generateExpression(ifStatement.ifBody, parentTypeArguments);
         const indentedIfBody = ifBody.split("\n").length === 1 ? ifBody : [
           ifBody.split("\n")[0],
           common_1.prefixLines(ifBody.split("\n").slice(1).join("\n"), 4)
         ].join("\n");
-        const maybeElseLetBody = ifStatement.elseLetBody.length > 0 ? "\n" + common_1.prefixLines(ifStatement.elseLetBody.map(generateBlock).join("\n"), 4) : "";
-        const elseBody = generateExpression(ifStatement.elseBody);
+        const maybeElseLetBody = ifStatement.elseLetBody.length > 0 ? "\n" + common_1.prefixLines(ifStatement.elseLetBody.map((block) => generateBlock(block, parentTypeArguments)).join("\n"), 4) : "";
+        const elseBody = generateExpression(ifStatement.elseBody, parentTypeArguments);
         const indentedElseBody = elseBody.split("\n").length === 1 ? elseBody : [
           elseBody.split("\n")[0],
           common_1.prefixLines(elseBody.split("\n").slice(1).join("\n"), 4)
@@ -3344,10 +3381,10 @@ case ${predicate}.length: {
     }
 }`.trim();
       }
-      function generateBranch(predicate, branch) {
+      function generateBranch(predicate, branch, parentTypeArguments) {
         const returnWrapper = types_1.isSimpleValue(branch.body.kind) ? "    return " : "";
-        const body = common_1.prefixLines(generateExpression(branch.body), types_1.isSimpleValue(branch.body.kind) ? 0 : 4);
-        const maybeLetBody = branch.letBody.length > 0 ? "\n" + common_1.prefixLines(branch.letBody.map(generateBlock).join("\n"), 4) : "";
+        const body = common_1.prefixLines(generateExpression(branch.body, parentTypeArguments), types_1.isSimpleValue(branch.body.kind) ? 0 : 4);
+        const maybeLetBody = branch.letBody.length > 0 ? "\n" + common_1.prefixLines(branch.letBody.map((block) => generateBlock(block, parentTypeArguments)).join("\n"), 4) : "";
         switch (branch.pattern.kind) {
           case "Destructure": {
             const pattern = branch.pattern.pattern.trim().length > 0 ? `
@@ -3440,10 +3477,10 @@ ${returnWrapper}${body};
           }
         }
       }
-      function generateCaseStatement(caseStatement) {
+      function generateCaseStatement(caseStatement, parentTypeArguments) {
         const predicate = generateExpression(caseStatement.predicate);
         const name = `_res${utils_1.hashCode(predicate)}`;
-        const branches = caseStatement.branches.map((branch) => generateBranch(name, branch));
+        const branches = caseStatement.branches.map((branch) => generateBranch(name, branch, parentTypeArguments || []));
         const isString = caseStatement.branches.filter((branch) => branch.pattern.kind === "StringValue").length > 0;
         if (isString) {
           return `
@@ -3466,6 +3503,9 @@ switch (${name}.kind) {
 ${common_1.prefixLines(branches.join("\n"), 4)}
 }`.trim();
       }
+      function getGenericTypesFromFunctionType(type_) {
+        return type_.args.filter((arg) => arg.kind === "GenericType");
+      }
       function generateTopLevelType(type_) {
         switch (type_.kind) {
           case "GenericType": {
@@ -3484,14 +3524,32 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
               }
               return `(${fixedArgs.map(generateTopLevelType).join(" | ")})[]`;
             }
-            const args = type_.args.filter((type_2) => type_2.kind === "GenericType" || type_2.kind === "FixedType");
+            if (type_.args.length > 0 && type_.args[0].kind === "FixedType" && type_.args[0].args.length > 0) {
+              return `${type_.name}<${type_.args.map(generateTopLevelType).join(", ")}>`;
+            }
+            const args = [];
+            for (const arg of type_.args) {
+              if (arg.kind === "GenericType" || arg.kind === "FixedType") {
+                args.push(arg);
+              } else {
+                for (const generic of getGenericTypesFromFunctionType(arg)) {
+                  args.push(generic);
+                }
+              }
+            }
             if (args.length === 0) {
               return type_.name;
             }
             return `${type_.name}<${args.map(generateType).join(", ")}>`;
           }
           case "FunctionType": {
-            return generateType(type_);
+            const parts = [];
+            let index = 0;
+            for (const typePart of type_.args.slice(0, -1)) {
+              parts.push(`arg${index}: ${generateTopLevelType(typePart)}`);
+              index++;
+            }
+            return "(" + parts.join(", ") + ") => " + generateType(type_.args[type_.args.length - 1]);
           }
         }
       }
@@ -3513,7 +3571,16 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
               }
               return `(${fixedArgs.map(generateType).join(" | ")})[]`;
             }
-            const args = type_.args.filter((type_2) => type_2.kind === "GenericType");
+            const args = [];
+            for (const arg of type_.args) {
+              if (arg.kind === "GenericType") {
+                args.push(arg);
+              } else if (arg.kind === "FunctionType") {
+                for (const generic of getGenericTypesFromFunctionType(arg)) {
+                  args.push(generic);
+                }
+              }
+            }
             if (args.length === 0) {
               return type_.name;
             }
@@ -3559,26 +3626,38 @@ ${common_1.prefixLines(branches.join("\n"), 4)}
         return `${left}(${right})`;
       }
       function generateModuleReference(moduleReference) {
+        if (moduleReference.path.length === 0) {
+          const right2 = generateExpression(moduleReference.value);
+          return `(arg0) => arg0.${right2}`;
+        }
         const left = moduleReference.path.join(".");
         const right = generateExpression(moduleReference.value);
         return `${left}.${right}`;
       }
-      function generateFunctionCall(functionCall) {
-        const right = functionCall.args.map(generateExpression).join(", ");
+      function generateFunctionCall(functionCall, parentTypeArguments, parentTypes) {
+        const right = functionCall.args.map((item) => generateExpression(item)).join(", ");
         return `${functionCall.name}(${right})`;
       }
       function generateLambda(lambda) {
         const args = lambda.args.map((arg) => `${arg}: any`).join(", ");
-        const body = generateExpression(lambda.body);
-        return `
+        const isSimple = types_1.isSimpleValue(lambda.body.kind);
+        const body = common_1.prefixLines(generateExpression(lambda.body), isSimple ? 0 : 4);
+        if (isSimple) {
+          return `
 function(${args}) {
     return ${body};
+}
+`.trim();
+        }
+        return `
+function(${args}) {
+${body}
 }
 `.trim();
       }
       function generateLambdaCall(lambdaCall) {
         const args = lambdaCall.lambda.args.map((arg) => `${arg}: any`).join(", ");
-        const argsValues = lambdaCall.args.map(generateExpression).join(", ");
+        const argsValues = lambdaCall.args.map((item) => generateExpression(item)).join(", ");
         const body = generateExpression(lambdaCall.lambda.body);
         return `
 (function(${args}) {
@@ -3631,7 +3710,7 @@ function(${args}) {
         const right = generateExpression(prepend.right);
         return `[ ${left}, ...${right} ]`;
       }
-      function generateExpression(expression) {
+      function generateExpression(expression, parentTypeArguments, parentTypes) {
         switch (expression.kind) {
           case "Value":
             return common_to_ecma_1.generateValue(expression);
@@ -3646,9 +3725,9 @@ function(${args}) {
           case "ObjectLiteral":
             return generateObjectLiteral(expression);
           case "IfStatement":
-            return generateIfStatement(expression);
+            return generateIfStatement(expression, parentTypeArguments || []);
           case "CaseStatement":
-            return generateCaseStatement(expression);
+            return generateCaseStatement(expression, parentTypeArguments || []);
           case "Addition":
             return generateAddition(expression);
           case "Subtraction":
@@ -3670,7 +3749,7 @@ function(${args}) {
           case "ModuleReference":
             return generateModuleReference(expression);
           case "FunctionCall":
-            return generateFunctionCall(expression);
+            return generateFunctionCall(expression, parentTypeArguments || [], parentTypes || []);
           case "Lambda":
             return generateLambda(expression);
           case "LambdaCall":
@@ -3708,7 +3787,7 @@ function(${args}) {
           }
         }
       }
-      function generateFunction(function_) {
+      function generateFunction(function_, parentTypeArguments, parentTypes) {
         const functionArguments = function_.args.map((arg) => {
           switch (arg.kind) {
             case "FunctionArg":
@@ -3717,14 +3796,17 @@ function(${args}) {
               return "_" + arg.index + ": " + generateTopLevelType(arg.type);
           }
         }).join(", ");
-        const maybeLetBody = function_.letBody.length > 0 ? "\n" + common_1.prefixLines(function_.letBody.map(generateBlock).join("\n"), 4) : "";
+        const typeArguments = [].concat(...function_.args.map((arg) => collectTypeArguments(arg.type)), collectTypeArguments(function_.returnType)).filter((value, index, arr) => arr.indexOf(value) === index && parentTypeArguments.indexOf(value) === -1);
+        const maybeLetBody = function_.letBody.length > 0 ? "\n" + common_1.prefixLines(function_.letBody.map((block) => generateBlock(block, [
+          ...typeArguments,
+          ...parentTypeArguments
+        ])).join("\n"), 4) : "";
         const returnType = generateTopLevelType(function_.returnType);
         const isSimpleBody = types_1.isSimpleValue(function_.body.kind);
         const bodyPrefix = isSimpleBody ? "return " : "";
         const bodySuffix = isSimpleBody ? ";" : "";
-        const body = bodyPrefix + generateExpression(function_.body) + bodySuffix;
+        const body = bodyPrefix + generateExpression(function_.body, [...typeArguments, ...parentTypeArguments], [...parentTypes, function_.returnType]) + bodySuffix;
         const prefixedBody = common_1.prefixLines(body, 4);
-        const typeArguments = [].concat(...function_.args.map((arg) => collectTypeArguments(arg.type)), collectTypeArguments(function_.returnType)).filter((value, index, arr) => arr.indexOf(value) === index);
         const typeArgumentsString = typeArguments.length === 0 ? "" : `<${typeArguments.join(", ")}>`;
         return `
 function ${function_.name}${typeArgumentsString}(${functionArguments}): ${returnType} {${maybeLetBody}
@@ -3762,7 +3844,7 @@ ${common_1.prefixLines(generateExpression(expression), 4)}
 const ${constDef.name}: ${typeDef} = ${body};
 `.trim();
       }
-      function generateBlock(syntax) {
+      function generateBlock(syntax, parentTypeArguments, parentTypes) {
         switch (syntax.kind) {
           case "Import":
             return common_to_ecma_1.generateImportBlock(syntax);
@@ -3773,7 +3855,7 @@ const ${constDef.name}: ${typeDef} = ${body};
           case "TypeAlias":
             return generateTypeAlias(syntax);
           case "Function":
-            return generateFunction(syntax);
+            return generateFunction(syntax, parentTypeArguments || [], parentTypes || []);
           case "Const":
             return generateConst(syntax);
           case "Comment":
@@ -3782,7 +3864,7 @@ const ${constDef.name}: ${typeDef} = ${body};
         }
       }
       function generateTypescript2(module2) {
-        return [blocks_1.exportTests(module2), ...module2.body].map(generateBlock).filter((line) => line.length > 0).join("\n\n");
+        return [blocks_1.exportTests(module2), ...module2.body].map((block) => generateBlock(block)).filter((line) => line.length > 0).join("\n\n");
       }
       exports.generateTypescript = generateTypescript2;
     }
@@ -4197,6 +4279,16 @@ const ${constDef.name}: ${typeDef} = ${body};
                   currentToken = "";
                   break;
                 }
+                case "{": {
+                  if (body[i + 1] === "-") {
+                    currentToken += "{";
+                    state = Keyword();
+                    break;
+                  }
+                  tokens.push(OpenCurlyBracesToken());
+                  currentToken = "";
+                  break;
+                }
                 case "}": {
                   tokens.push(CloseCurlyBracesToken());
                   currentToken = "";
@@ -4296,10 +4388,18 @@ const ${constDef.name}: ${typeDef} = ${body};
                 }
                 break;
               } else if (char === ":") {
-                tokens.push(IdentifierToken(currentToken));
-                tokens.push(ColonToken());
-                currentToken = "";
-                state = Empty();
+                if (body[i + 1] === ":") {
+                  tokens.push(IdentifierToken(currentToken));
+                  tokens.push(OperatorToken("::"));
+                  i++;
+                  currentToken = "";
+                  state = Empty();
+                } else {
+                  tokens.push(IdentifierToken(currentToken));
+                  tokens.push(ColonToken());
+                  currentToken = "";
+                  state = Empty();
+                }
                 break;
               } else if (char === ",") {
                 tokens.push(IdentifierToken(currentToken));
@@ -4407,7 +4507,6 @@ const ${constDef.name}: ${typeDef} = ${body};
         let rootTypeTokens = [];
         let currentBuffer = [];
         let indent = 0;
-        let index = 0;
         for (const token of tokens) {
           switch (token.kind) {
             case "OpenBracketToken": {
@@ -4449,86 +4548,90 @@ const ${constDef.name}: ${typeDef} = ${body};
               continue;
           }
         }
-        if (currentBuffer.length > 0) {
-          if (currentBuffer.find((t) => t.kind === "OpenBracketToken")) {
-            const isFunction = currentBuffer.find((t) => t.kind === "ArrowToken");
-            let tokenized = result_1.Ok([]);
-            if (currentBuffer[0].kind === "IdentifierToken" && !isFunction) {
-              let depth = 0;
-              let inner = [];
-              let collectedInners = [];
-              for (const t of currentBuffer.slice(1)) {
-                switch (t.kind) {
-                  case "OpenBracketToken": {
-                    if (depth > 0)
-                      inner.push(t);
-                    depth++;
-                    break;
+        if (currentBuffer.length === 0)
+          return result_1.Ok(rootTypeTokens);
+        if (currentBuffer.find((t) => t.kind === "OpenBracketToken")) {
+          const isFunction = currentBuffer.find((t) => t.kind === "ArrowToken");
+          let tokenized = result_1.Ok([]);
+          if (currentBuffer[0].kind === "IdentifierToken" && !isFunction) {
+            let depth = 0;
+            let inner = [];
+            let collectedInners = [];
+            for (const t of currentBuffer.slice(1)) {
+              switch (t.kind) {
+                case "OpenBracketToken": {
+                  if (depth > 0)
+                    inner.push(t);
+                  depth++;
+                  break;
+                }
+                case "CloseBracketToken": {
+                  if (depth > 1)
+                    inner.push(t);
+                  depth--;
+                  if (depth === 0) {
+                    const innerTokenized = tokenizeType(inner);
+                    if (innerTokenized.kind === "err")
+                      return innerTokenized;
+                    collectedInners.push(innerTokenized.value);
+                    inner = [];
                   }
-                  case "CloseBracketToken": {
-                    if (depth > 1)
-                      inner.push(t);
-                    depth--;
-                    if (depth === 0) {
-                      const innerTokenized = tokenizeType(inner);
-                      if (innerTokenized.kind === "err")
-                        return innerTokenized;
-                      collectedInners.push(innerTokenized.value);
-                      inner = [];
-                    }
-                    break;
+                  break;
+                }
+                case "IdentifierToken": {
+                  if (depth === 0) {
+                    const tokenized2 = tokenizeType(tokenize(t.body));
+                    if (tokenized2.kind === "err")
+                      return tokenized2;
+                    collectedInners.push(tokenized2.value);
+                  } else {
+                    inner.push(t);
                   }
-                  case "IdentifierToken": {
-                    if (depth === 0) {
-                    } else {
-                      inner.push(t);
-                    }
-                    break;
-                  }
-                  case "ArrowToken": {
-                    if (depth === 0) {
-                    } else {
-                      inner.push(t);
-                    }
+                  break;
+                }
+                case "ArrowToken": {
+                  if (depth === 0) {
+                  } else {
+                    inner.push(t);
                   }
                 }
-                let flattened = [];
-                for (const collected of collectedInners) {
-                  flattened = flattened.concat(collected);
-                }
-                tokenized = result_1.Ok([
-                  BaseTypeToken([currentBuffer[0], ...flattened])
-                ]);
               }
-            } else {
-              tokenized = tokenizeType(currentBuffer);
-            }
-            if (tokenized.kind === "err")
-              return tokenized;
-            if (isFunction) {
-              rootTypeTokens.push(FunctionTypeToken(tokenized.value));
-            } else {
-              for (const t of tokenized.value) {
-                rootTypeTokens.push(t);
+              let flattened = [];
+              for (const collected of collectedInners) {
+                flattened = flattened.concat(collected);
               }
+              tokenized = result_1.Ok([
+                BaseTypeToken([currentBuffer[0], ...flattened])
+              ]);
             }
-          } else if (currentBuffer.find((t) => t.kind === "ArrowToken")) {
-            const tokenized = tokenizeType(currentBuffer);
-            if (tokenized.kind === "err")
-              return tokenized;
+          } else {
+            tokenized = tokenizeType(currentBuffer);
+          }
+          if (tokenized.kind === "err")
+            return tokenized;
+          if (isFunction) {
             rootTypeTokens.push(FunctionTypeToken(tokenized.value));
           } else {
-            let inner = [];
-            if (currentBuffer.length > 1) {
-              for (const bufferPart of currentBuffer.slice(1)) {
-                const tokenized = tokenizeType([bufferPart]);
-                if (tokenized.kind === "err")
-                  return tokenized;
-                inner = inner.concat(tokenized.value);
-              }
+            for (const t of tokenized.value) {
+              rootTypeTokens.push(t);
             }
-            rootTypeTokens.push(BaseTypeToken([currentBuffer[0], ...inner]));
           }
+        } else if (currentBuffer.find((t) => t.kind === "ArrowToken")) {
+          const tokenized = tokenizeType(currentBuffer);
+          if (tokenized.kind === "err")
+            return tokenized;
+          rootTypeTokens.push(FunctionTypeToken(tokenized.value));
+        } else {
+          let inner = [];
+          if (currentBuffer.length > 1) {
+            for (const bufferPart of currentBuffer.slice(1)) {
+              const tokenized = tokenizeType([bufferPart]);
+              if (tokenized.kind === "err")
+                return tokenized;
+              inner = inner.concat(tokenized.value);
+            }
+          }
+          rootTypeTokens.push(BaseTypeToken([currentBuffer[0], ...inner]));
         }
         return result_1.Ok(rootTypeTokens);
       }
@@ -4686,16 +4789,25 @@ const ${constDef.name}: ${typeDef} = ${body};
           if (first.kind === "FunctionType" && second.kind !== "FunctionType") {
             return doesFunctionTypeContainType(first, second, topLevel);
           }
-          if (first.kind === "FixedType" && first.args.length === 0 && second.kind === "GenericType") {
+          if (first.kind === "FixedType" && second.kind === "GenericType") {
             return true;
           }
-          if (second.kind === "FixedType" && second.args.length === 0 && first.kind === "GenericType") {
+          if (second.kind === "FixedType" && first.kind === "GenericType") {
             return true;
           }
           return false;
         }
         switch (first.kind) {
           case "FixedType": {
+            if (first.name.indexOf(".") > -1) {
+              const split = first.name.split(".");
+              first = Object.assign(Object.assign({}, first), { name: split[split.length - 1] });
+            }
+            second = second;
+            if (second.name.indexOf(".") > -1) {
+              const split = second.name.split(".");
+              second = Object.assign(Object.assign({}, second), { name: split[split.length - 1] });
+            }
             return isSameFixedType(first, second, topLevel);
           }
           case "GenericType": {
@@ -4743,8 +4855,33 @@ const ${constDef.name}: ${typeDef} = ${body};
       function inferListRange(value) {
         return types_1.FixedType("List", [types_1.FixedType("number", [])]);
       }
-      function inferObjectLiteral(value) {
-        return types_1.FixedType("any", []);
+      function inferObjectLiteral(value, typedBlocks) {
+        const typeAlias = types_1.TypeAlias(types_1.FixedType("Inferred", []), value.fields.map((field) => {
+          const inferred = inferType(field.value, typedBlocks);
+          if (inferred.kind === "err") {
+            return types_1.Property(field.name, types_1.GenericType("any"));
+          }
+          return types_1.Property(field.name, inferred.value);
+        }));
+        for (const block of typedBlocks) {
+          if (block.kind != "TypeAlias" || block.properties.length !== typeAlias.properties.length) {
+            continue;
+          }
+          let blockMatches = true;
+          for (const inferredProperty of typeAlias.properties) {
+            const hasMatchingBlockProperty = block.properties.filter((prop) => {
+              return prop.name === inferredProperty.name && isSameType(prop.type, inferredProperty.type, false);
+            }).length > 0;
+            if (!hasMatchingBlockProperty) {
+              blockMatches = false;
+              break;
+            }
+          }
+          if (blockMatches) {
+            return result_1.Ok(block.type);
+          }
+        }
+        return result_1.Ok(types_1.FixedType("any", []));
       }
       function inferIfStatement(value, typedBlocks) {
         const ifBranch = inferType(value.ifBody, typedBlocks);
@@ -4910,7 +5047,7 @@ const ${constDef.name}: ${typeDef} = ${body};
           case "ListRange":
             return result_1.Ok(inferListRange(expression));
           case "ObjectLiteral":
-            return result_1.Ok(inferObjectLiteral(expression));
+            return inferObjectLiteral(expression, typedBlocks);
           case "IfStatement":
             return inferIfStatement(expression, typedBlocks);
           case "CaseStatement":
@@ -4991,6 +5128,9 @@ const ${constDef.name}: ${typeDef} = ${body};
               if (type.name === exposed)
                 return true;
             }
+            if (type.name.indexOf(".") > -1 && module2.alias.kind === "just" && type.name.split(".")[0] === module2.alias.value) {
+              return true;
+            }
           }
         }
         return false;
@@ -4999,7 +5139,7 @@ const ${constDef.name}: ${typeDef} = ${body};
         switch (block.kind) {
           case "Const": {
             if (!typeExistsInNamespace(block.type, typedBlocks, imports)) {
-              return result_1.Err(`Type ${typeToString(block.type)} did not exist in the namespace.`);
+              return result_1.Err(`Type ${typeToString(block.type)} did not exist in the namespace`);
             }
             const inferredRes = inferType(block.value, typedBlocks);
             if (inferredRes.kind === "err")
@@ -5011,17 +5151,26 @@ const ${constDef.name}: ${typeDef} = ${body};
             return result_1.Err(`Expected \`${typeToString(block.type)}\` but got \`${typeToString(inferred)}\``);
           }
           case "Function": {
+            const notExistingErrors = [];
             if (!typeExistsInNamespace(block.returnType, typedBlocks, imports)) {
-              return result_1.Err(`Type ${typeToString(block.returnType)} did not exist in the namespace.`);
+              notExistingErrors.push(`Type ${typeToString(block.returnType)} did not exist in the namespace`);
+            }
+            for (const arg of block.args) {
+              if (!typeExistsInNamespace(arg.type, typedBlocks, imports)) {
+                notExistingErrors.push(`Type ${typeToString(arg.type)} did not exist in the namespace`);
+              }
+            }
+            if (notExistingErrors.length > 0) {
+              return result_1.Err(notExistingErrors.join("\n"));
             }
             const inferredRes = inferType(block.body, typedBlocks);
             if (inferredRes.kind === "err")
               return inferredRes;
             const inferred = inferredRes.value;
-            if (isSameType(block.returnType, inferred, false)) {
-              return result_1.Ok(block.returnType);
+            if (!isSameType(block.returnType, inferred, false)) {
+              return result_1.Err(`Expected \`${typeToString(block.returnType)}\` but got \`${typeToString(inferred)}\` in the body of the function`);
             }
-            return result_1.Err(`Expected \`${typeToString(block.returnType)}\` but got \`${typeToString(inferred)}\` in the body of the function`);
+            return result_1.Ok(block.returnType);
           }
           case "UnionType":
           case "TypeAlias": {
@@ -5061,6 +5210,22 @@ const ${constDef.name}: ${typeDef} = ${body};
           index++;
         }
         return tokens.slice(index);
+      }
+      function splitOnArrowTokens(tokens) {
+        const results = [];
+        let lastIndex = 0;
+        let index = 0;
+        while (index < tokens.length) {
+          if (tokens[index].kind === "ArrowToken") {
+            results.push(tokens.slice(lastIndex, index));
+            lastIndex = index + 1;
+          }
+          index++;
+        }
+        if (index > lastIndex) {
+          results.push(tokens.slice(lastIndex, index));
+        }
+        return results;
       }
       function parseTypeToken(token) {
         switch (token.kind) {
@@ -5266,6 +5431,10 @@ const ${constDef.name}: ${typeDef} = ${body};
               isInBranches = true;
               break;
             }
+            case "ArrowToken": {
+              currentBranch.push("->");
+              break;
+            }
             default: {
               return result_1.Err("Unexpected token parsing a union type. Got " + token.kind);
             }
@@ -5291,19 +5460,15 @@ const ${constDef.name}: ${typeDef} = ${body};
           }
           let argsAsJson = tag.split(" ").slice(1).join(" ");
           const args = argsAsJson.split(" ").filter((j) => j !== "{" && j !== "}").join(" ").split(",").filter((arg) => arg.trim().length > 0).map((arg) => {
-            const split = arg.split(":");
-            const splitTypes = split[1].trim().split(" ");
-            const typeName = splitTypes[0];
-            const typeArguments = splitTypes.slice(1).map((name) => parseType(tokens_1.tokenize(name))).filter((type_2) => type_2.kind !== "err").map((type_2) => type_2.value);
-            const type_ = parseType(tokens_1.tokenize(splitTypes.join(" ")));
-            if (type_.kind === "err")
-              return type_;
-            return result_1.Ok(types_1.TagArg(split[0].trim(), type_.value));
+            const property = parseProperty(tokens_1.tokenize(arg));
+            if (property.kind === "err")
+              return property;
+            return result_1.Ok(types_1.TagArg(property.value.name, property.value.type));
           });
           if (args.filter((maybeTag) => maybeTag.kind === "ok").length === args.length) {
             return result_1.Ok(types_1.Tag(tagName, args.map((arg) => arg.value)));
           }
-          return result_1.Err("Error parsing args");
+          return result_1.Err("Error parsing args due to:\n" + args.filter((arg) => arg.kind === "err").map((err) => err.error));
         });
         if (tags.length === 0) {
           return result_1.Err("Not enough tags given.");
@@ -5359,6 +5524,8 @@ const ${constDef.name}: ${typeDef} = ${body};
         if (types.length > 1) {
           return result_1.Err("Too many types found in property");
         }
+        if (types.length < 1)
+          return result_1.Err("Failed to find type");
         const type = parseRootTypeTokens(types[0]);
         if (type.kind === "err")
           return type;
@@ -5621,6 +5788,9 @@ const ${constDef.name}: ${typeDef} = ${body};
               }
               break;
             }
+            case "ArrowToken": {
+              innermostBuffer += "->";
+            }
           }
           index++;
         }
@@ -5655,7 +5825,7 @@ const ${constDef.name}: ${typeDef} = ${body};
           index++;
         }
         const firstChar = body.join("").slice(0, 1);
-        if (firstChar.toUpperCase() === firstChar && isNaN(parseFloat(firstChar))) {
+        if (firstChar !== "-" && firstChar.toUpperCase() === firstChar && isNaN(parseFloat(firstChar))) {
           return parseConstructor(tokens);
         }
         return result_1.Ok(types_1.Value(body.join("")));
@@ -5664,6 +5834,26 @@ const ${constDef.name}: ${typeDef} = ${body};
         if (tokens[0].kind === "StringToken")
           return result_1.Ok(types_1.StringValue(tokens[0].body.slice(1, -1)));
         return result_1.Err(`Expected string literal, got ${tokens[0].kind}`);
+      }
+      function listRangeDotsNotWithinString(tokens) {
+        let i = 0;
+        for (const token of tokens) {
+          if (token.kind !== "WhitespaceToken")
+            break;
+          i++;
+        }
+        if (i === tokens.length)
+          return true;
+        const firstToken = tokens[i];
+        if (firstToken.kind === "LiteralToken" && firstToken.body.startsWith("[")) {
+          const newTokens = tokens_1.tokenize(firstToken.body.slice(1));
+          for (const token of newTokens) {
+            if ((token.kind === "LiteralToken" || token.kind === "IdentifierToken") && token.body.indexOf("..") > -1) {
+              return true;
+            }
+          }
+        }
+        return false;
       }
       function parseListRange(tokens) {
         let index = 0;
@@ -5719,13 +5909,26 @@ const ${constDef.name}: ${typeDef} = ${body};
         const innerTokens = tokens_1.tokenize(innerBody);
         let innerIndex = 0;
         let currentBuffer = [];
+        let depth = 0;
         while (innerIndex < innerTokens.length) {
           const token = innerTokens[innerIndex];
           switch (token.kind) {
-            case "CommaToken": {
-              parsedValues.push(parseExpression(tokens_1.tokensToString(currentBuffer)));
-              currentBuffer = [];
+            case "OpenCurlyBracesToken": {
+              currentBuffer.push(tokens_1.OpenCurlyBracesToken());
+              depth++;
               break;
+            }
+            case "CloseCurlyBracesToken": {
+              currentBuffer.push(tokens_1.CloseCurlyBracesToken());
+              depth--;
+              break;
+            }
+            case "CommaToken": {
+              if (depth === 0) {
+                parsedValues.push(parseExpression(tokens_1.tokensToString(currentBuffer)));
+                currentBuffer = [];
+                break;
+              }
             }
             default: {
               currentBuffer.push(token);
@@ -5839,13 +6042,80 @@ const ${constDef.name}: ${typeDef} = ${body};
           return pattern;
         return result_1.Ok(types_1.Constructor(constructor, pattern.value));
       }
+      function parseIfPredicate(tokens) {
+        const inbetweenTokens = [];
+        let state = "WaitingForIf";
+        for (const token of tokens) {
+          switch (token.kind) {
+            case "KeywordToken": {
+              if (token.body === "if") {
+                state = "BetweenIfAndThen";
+                break;
+              } else if (token.body === "then") {
+                state = "PastThen";
+                break;
+              }
+            }
+            default: {
+              if (state === "BetweenIfAndThen") {
+                inbetweenTokens.push(token);
+              }
+            }
+          }
+          if (state === "PastThen")
+            break;
+        }
+        return parseExpression(tokens_1.tokensToString(inbetweenTokens));
+      }
+      function parseIfBody(tokens) {
+        const inbetweenTokens = [];
+        let state = "WaitingForThen";
+        for (const token of tokens) {
+          switch (token.kind) {
+            case "KeywordToken": {
+              if (token.body === "then") {
+                state = "BetweenThenAndElse";
+                break;
+              } else if (token.body === "else") {
+                state = "PastElse";
+                break;
+              }
+            }
+            default: {
+              if (state === "BetweenThenAndElse") {
+                inbetweenTokens.push(token);
+              }
+            }
+          }
+          if (state === "PastElse")
+            break;
+        }
+        return parseExpression(tokens_1.tokensToString(inbetweenTokens));
+      }
+      function parseElseBody(tokens) {
+        const inbetweenTokens = [];
+        let state = "WaitingForElse";
+        for (const token of tokens) {
+          switch (token.kind) {
+            case "KeywordToken": {
+              if (token.body === "else") {
+                state = "BetweenElseAndEnd";
+                break;
+              }
+            }
+            default: {
+              if (state === "BetweenElseAndEnd") {
+                inbetweenTokens.push(token);
+              }
+            }
+          }
+        }
+        return parseExpression(tokens_1.tokensToString(inbetweenTokens));
+      }
       function parseIfStatementSingleLine(body) {
-        const predicate = body.split("then")[0].split("if")[1];
-        const ifBody = body.split("then")[1].split("else")[0];
-        const elseBody = body.split("else")[1];
-        const parsedPredicate = parseExpression(predicate);
-        const parsedIfBody = parseExpression(ifBody);
-        const parsedElseBody = parseExpression(elseBody);
+        const parsedPredicate = parseIfPredicate(tokens_1.tokenize(body));
+        const parsedIfBody = parseIfBody(tokens_1.tokenize(body));
+        const parsedElseBody = parseElseBody(tokens_1.tokenize(body));
         const errors = [];
         if (parsedPredicate.kind === "err")
           errors.push(parsedPredicate.error);
@@ -5880,9 +6150,7 @@ const ${constDef.name}: ${typeDef} = ${body};
           return parseIfStatementSingleLine(body);
         }
         const lines = body.split("\n").filter((line) => line.trim().length > 0);
-        const predicateWords = lines[0].trim().split(" ");
-        const predicate = predicateWords.slice(1, predicateWords.length - 1);
-        const parsedPredicate = parseExpression(predicate.join(" "));
+        const parsedPredicate = parseIfPredicate(tokens_1.tokenize(body));
         const indentLevel = getIndentLevel(lines[0]);
         const elseIndex = lines.reduce((previous, current, index) => {
           if (previous.found)
@@ -6043,23 +6311,60 @@ const ${constDef.name}: ${typeDef} = ${body};
         }
         return result_1.Err(`Expected destructure or string but got ${firstToken.kind}`);
       }
+      function parseCasePredicate(tokens) {
+        const inbetweenTokens = [];
+        let state = "WaitingForCase";
+        for (const token of tokens) {
+          switch (token.kind) {
+            case "KeywordToken": {
+              if (token.body === "case") {
+                state = "BetweenCaseAndOr";
+                break;
+              } else if (token.body === "of") {
+                state = "PastOf";
+                break;
+              }
+            }
+            default: {
+              inbetweenTokens.push(token);
+            }
+          }
+          if (state === "PastOf")
+            break;
+        }
+        return parseExpression(tokens_1.tokensToString(inbetweenTokens));
+      }
       function parseCaseStatement(body) {
         body = body.split("\n").filter((l) => l.trim().length > 0).join("\n");
         const rootIndentLevel = getIndentLevel(body.split("\n")[0]);
-        const casePredicate = parseExpression(body.split("case ")[1].split(" of")[0]);
+        const casePredicate = parseCasePredicate(tokens_1.tokenize(body));
+        let firstIndexOfOf = 0;
+        for (const line of body.split("\n")) {
+          if (line.endsWith(" of")) {
+            break;
+          }
+          firstIndexOfOf++;
+        }
         const lines = body.split("\n");
         let branches = [];
         let branchPattern = "";
         let branchLines = [];
-        for (var i = 1; i < lines.length; i++) {
+        for (var i = firstIndexOfOf + 1; i < lines.length; i++) {
           const line = lines[i];
           const indent = getIndentLevel(line);
           let wasReset = false;
           if (rootIndentLevel + 4 === indent) {
             if (branchPattern === "") {
+              const split = splitOnArrowTokens(tokens_1.tokenize(line));
+              if (split.length === 1) {
+                branchPattern = tokens_1.tokensToString(split[0]);
+              } else if (split.length === 2) {
+                branchPattern = tokens_1.tokensToString(split[0]);
+                branchLines.push(tokens_1.tokensToString(split[1]));
+              } else {
+                branches.push(result_1.Err(`Failed to parse branch on line ${i}`));
+              }
               wasReset = true;
-              branchPattern = line.split("->")[0];
-              branchLines.push(line.split("->")[1]);
             }
             if (!branchLines.join("").trim()) {
               continue;
@@ -6084,8 +6389,16 @@ const ${constDef.name}: ${typeDef} = ${body};
               branches.push(result_1.Ok(types_1.Branch(parsedBranchPattern.value, branchExpression.value, letBlock)));
             }
             if (!wasReset) {
-              branchPattern = line.split("->")[0];
-              branchLines = [line.split("->")[1]];
+              const split = splitOnArrowTokens(tokens_1.tokenize(line));
+              if (split.length === 1) {
+                branchPattern = tokens_1.tokensToString(split[0]);
+                branchLines = [];
+              } else if (split.length === 2) {
+                branchPattern = tokens_1.tokensToString(split[0]);
+                branchLines = [tokens_1.tokensToString(split[1])];
+              } else {
+                branches.push(result_1.Err(`Failed to parse branch on line ${i}`));
+              }
             } else {
               branchPattern = "";
               branchLines = [];
@@ -6119,16 +6432,25 @@ const ${constDef.name}: ${typeDef} = ${body};
         const errors = [];
         if (casePredicate.kind === "err")
           errors.push(casePredicate.error);
-        branches.forEach((branch) => {
+        branches.forEach((branch, i2) => {
           if (branch.kind === "err") {
             errors.push(branch.error);
+          } else {
+            if (branch.value.pattern.kind === "Default" && i2 < branches.length - 1) {
+              errors.push("default case must come last in the case..of");
+            }
           }
         });
         if (errors.length > 0) {
           return result_1.Err(errors.join("\n"));
         }
         const validBranches = branches.map((value) => value.value);
-        if (validBranches.filter((t) => t.pattern.kind === "ListDestructure" || t.pattern.kind === "EmptyList").length > 0 && validBranches.filter((t) => t.pattern.kind === "Default").length === 0) {
+        const needsDefault = validBranches.filter((t) => t.pattern.kind === "ListDestructure" || t.pattern.kind === "EmptyList").length > 0;
+        const hasDefault = validBranches.filter((t) => t.pattern.kind === "Default").length > 0;
+        const hasWildcardDestructure = validBranches.filter((t) => t.pattern.kind === "ListDestructure" && t.pattern.parts.length == 2 && t.pattern.parts[0].kind === "Value" && (t.pattern.parts[1].kind === "Value" || t.pattern.parts[1].kind === "EmptyList")).length > 0;
+        const hasEmptyList = validBranches.filter((t) => t.pattern.kind === "EmptyList").length > 0;
+        const isSimpleDestructure = hasWildcardDestructure && hasEmptyList;
+        if (needsDefault && !hasDefault && !isSimpleDestructure) {
           return result_1.Err("You must provide a default case when using list destructoring");
         }
         return result_1.Ok(types_1.CaseStatement(casePredicate.value, validBranches));
@@ -6199,7 +6521,7 @@ const ${constDef.name}: ${typeDef} = ${body};
         const expression = parseExpression(value);
         if (expression.kind === "err")
           return expression;
-        return result_1.Ok(types_1.ModuleReference(moduleName, expression.value));
+        return result_1.Ok(types_1.ModuleReference(moduleName.length === 1 && moduleName[0].trim().length === 0 ? [] : moduleName, expression.value));
       }
       function parseFunctionCall(tokens) {
         let functionName = null;
@@ -6234,6 +6556,8 @@ const ${constDef.name}: ${typeDef} = ${body};
         const args = [];
         let currentArg = [];
         let bracketDepth = 0;
+        let colonDepth = 0;
+        let curlyBracketDepth = 0;
         for (var i = index; i < tokens.length; i++) {
           const token = tokens[i];
           switch (token.kind) {
@@ -6244,7 +6568,7 @@ const ${constDef.name}: ${typeDef} = ${body};
               if (currentArg.join().trim().length > 0) {
                 currentArg.push(token.body);
               } else {
-                if (bracketDepth === 0) {
+                if (bracketDepth === 0 && colonDepth === 0) {
                   args.push(currentArg.join(""));
                   args.push(token.body);
                   currentArg = [];
@@ -6255,7 +6579,7 @@ const ${constDef.name}: ${typeDef} = ${body};
               break;
             }
             case "OpenBracketToken": {
-              if (bracketDepth === 0) {
+              if (bracketDepth === 0 && colonDepth === 0) {
                 if (currentArg.join().trim().length > 0) {
                   args.push(currentArg.join(""));
                 }
@@ -6268,7 +6592,7 @@ const ${constDef.name}: ${typeDef} = ${body};
             }
             case "CloseBracketToken": {
               bracketDepth--;
-              if (bracketDepth <= 0) {
+              if (bracketDepth <= 0 && colonDepth === 0) {
                 args.push(currentArg.join(""));
                 currentArg = [];
               } else {
@@ -6277,19 +6601,31 @@ const ${constDef.name}: ${typeDef} = ${body};
               break;
             }
             case "OpenCurlyBracesToken": {
+              curlyBracketDepth++;
               currentArg.push("{");
               break;
             }
             case "CloseCurlyBracesToken": {
+              curlyBracketDepth--;
               currentArg.push("}");
+              if (colonDepth > 0)
+                colonDepth--;
+              if (bracketDepth === 0 && curlyBracketDepth === 0) {
+                args.push(currentArg.join(""));
+                currentArg = [];
+              }
               break;
             }
             case "ColonToken": {
               currentArg.push(":");
+              colonDepth++;
               break;
             }
             case "CommaToken": {
               currentArg.push(",");
+              if (colonDepth === 1) {
+                colonDepth--;
+              }
               break;
             }
             case "OperatorToken": {
@@ -6302,6 +6638,10 @@ const ${constDef.name}: ${typeDef} = ${body};
             }
             case "ArrowToken": {
               currentArg.push("->");
+              break;
+            }
+            case "KeywordToken": {
+              currentArg.push(token.body);
               break;
             }
           }
@@ -6372,6 +6712,7 @@ const ${constDef.name}: ${typeDef} = ${body};
       }
       function hasTopLevelOperator(operator, tokens) {
         let bracketDepth = 0;
+        let curlyBracketDepth = 0;
         for (const token of tokens) {
           switch (token.kind) {
             case "OpenBracketToken": {
@@ -6382,8 +6723,16 @@ const ${constDef.name}: ${typeDef} = ${body};
               bracketDepth--;
               break;
             }
+            case "OpenCurlyBracesToken": {
+              curlyBracketDepth++;
+              break;
+            }
+            case "CloseCurlyBracesToken": {
+              curlyBracketDepth--;
+              break;
+            }
             case "OperatorToken": {
-              if (bracketDepth === 0 && token.body === operator) {
+              if (bracketDepth === 0 && curlyBracketDepth === 0 && token.body === operator) {
                 return true;
               }
             }
@@ -6537,6 +6886,9 @@ const ${constDef.name}: ${typeDef} = ${body};
             break;
           }
           case "OpenCurlyBracesToken": {
+            if (hasTopLevelOperator("::", tokens)) {
+              return parseListPrepend(tokens);
+            }
             const tokensOtherThanWhitespace = tokens.slice(index + 1).filter((token) => token.kind !== "WhitespaceToken");
             if (tokensOtherThanWhitespace.filter((token) => token.kind === "IdentifierToken" || token.kind === "CommaToken" || token.kind === "CloseCurlyBracesToken").length === tokensOtherThanWhitespace.length) {
             }
@@ -6649,7 +7001,7 @@ const ${constDef.name}: ${typeDef} = ${body};
             }
             case "LiteralToken": {
               if (token.body.startsWith("[")) {
-                if (token.body.indexOf("..") > -1) {
+                if (listRangeDotsNotWithinString(tokens)) {
                   return parseListRange(tokens);
                 }
                 return parseListValue(tokens);
