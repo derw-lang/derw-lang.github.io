@@ -7890,7 +7890,7 @@ ${definitions.join("\n\n")}
         this.shadowRoot.appendChild(this.container);
       }
       this.editor = new codeflask_module_default(this.container, {
-        language: "derw",
+        language: "markdown",
         rtl: false,
         tabSize: 4,
         enableAutocorrect: false,
@@ -7955,15 +7955,21 @@ ${definitions.join("\n\n")}
           break;
         }
         case "english": {
-          console.log("parsed", parsed);
           generated = (0, import_english.generateEnglish)(parsed);
           break;
         }
       }
-      if (output)
-        output.setAttribute("language", "javascript");
-      if (output)
-        output.value = generated;
+      if (output) {
+        if (parsed.errors.length > 0) {
+          generated = `${parsed.errors.join("\n\n")}
+
+${generated}`;
+        }
+        if (generated.length > 0) {
+          output.setAttribute("language", "markdown");
+          output.value = generated;
+        }
+      }
     }
     onModeUpdate() {
       this.renderCode(this.getAttribute("value") || "");
