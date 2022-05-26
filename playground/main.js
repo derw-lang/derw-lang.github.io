@@ -423,11 +423,12 @@
         };
       }
       exports.Function = Function;
-      function Const(name, type, value) {
+      function Const(name, type, letBody, value) {
         return {
           kind: "Const",
           name,
           type,
+          letBody,
           value
         };
       }
@@ -996,11 +997,12 @@ ${prefixedBody}
 `.trim();
       }
       function generateConst(constDef) {
-        const body = common_1.prefixLines(generateExpression(constDef.value), 4);
+        const maybeLetBody = constDef.letBody.length > 0 ? common_1.prefixLines("\nlet", 4) + "\n" + common_1.prefixLines(constDef.letBody.map(generateBlock).join("\n\n"), 8) + common_1.prefixLines("\nin", 4) : "";
         const typeDef = generateTopLevelType(constDef.type);
+        const body = common_1.prefixLines(generateExpression(constDef.value), maybeLetBody === "" ? 4 : 8);
         return `
 ${constDef.name}: ${typeDef}
-${constDef.name} =
+${constDef.name} =${maybeLetBody}
 ${body}
 `.trim();
       }
@@ -1496,11 +1498,12 @@ ${prefixedBody}
 `.trim();
       }
       function generateConst(constDef) {
-        const body = common_1.prefixLines(generateExpression(constDef.value), 4);
+        const maybeLetBody = constDef.letBody.length > 0 ? common_1.prefixLines("\nlet", 4) + "\n" + common_1.prefixLines(constDef.letBody.map(generateBlock).join("\n\n"), 8) + common_1.prefixLines("\nin", 4) : "";
         const typeDef = generateTopLevelType(constDef.type);
+        const body = common_1.prefixLines(generateExpression(constDef.value), maybeLetBody === "" ? 4 : 8);
         return `
 ${constDef.name}: ${typeDef}
-${constDef.name} =
+${constDef.name} =${maybeLetBody}
 ${body}
 `.trim();
       }
@@ -3095,19 +3098,39 @@ ${prefixedBody}
 ${common_1.prefixLines(generateExpression(expression), 4)}
 })()`;
       }
+      function generateNestedConst(constDef, body) {
+        const generatedBlocks = constDef.letBody.map((block) => generateBlock(block)).join("\n");
+        return `(function() {
+${common_1.prefixLines(generatedBlocks, 4)}
+    return ${body};
+})()
+`.trim();
+      }
       function generateConst(constDef) {
         let body = "";
         switch (constDef.value.kind) {
           case "IfStatement": {
-            body = generateInlineIf(constDef.value);
+            if (constDef.letBody.length === 0) {
+              body = generateInlineIf(constDef.value);
+            } else {
+              body = generateNestedConst(constDef, generateInlineIf(constDef.value));
+            }
             break;
           }
           case "CaseStatement": {
-            body = generateInlineCase(constDef.value);
+            if (constDef.letBody.length === 0) {
+              body = generateInlineCase(constDef.value);
+            } else {
+              body = generateNestedConst(constDef, generateInlineCase(constDef.value));
+            }
             break;
           }
           default: {
-            body = generateExpression(constDef.value);
+            if (constDef.letBody.length === 0) {
+              body = generateExpression(constDef.value);
+            } else {
+              body = generateNestedConst(constDef, generateExpression(constDef.value));
+            }
             break;
           }
         }
@@ -3823,19 +3846,40 @@ ${prefixedBody}
 ${common_1.prefixLines(generateExpression(expression), 4)}
 })()`;
       }
+      function generateNestedConst(constDef, body) {
+        const typeDef = generateTopLevelType(constDef.type);
+        const generatedBlocks = constDef.letBody.map((block) => generateBlock(block, [], [])).join("\n");
+        return `(function(): ${typeDef} {
+${common_1.prefixLines(generatedBlocks, 4)}
+    return ${body};
+})()
+`.trim();
+      }
       function generateConst(constDef) {
         let body = "";
         switch (constDef.value.kind) {
           case "IfStatement": {
-            body = generateInlineIf(constDef.value);
+            if (constDef.letBody.length === 0) {
+              body = generateInlineIf(constDef.value);
+            } else {
+              body = generateNestedConst(constDef, generateInlineIf(constDef.value));
+            }
             break;
           }
           case "CaseStatement": {
-            body = generateInlineCase(constDef.value);
+            if (constDef.letBody.length === 0) {
+              body = generateInlineCase(constDef.value);
+            } else {
+              body = generateNestedConst(constDef, generateInlineCase(constDef.value));
+            }
             break;
           }
           default: {
-            body = generateExpression(constDef.value);
+            if (constDef.letBody.length === 0) {
+              body = generateExpression(constDef.value);
+            } else {
+              body = generateNestedConst(constDef, generateExpression(constDef.value));
+            }
             break;
           }
         }
@@ -7189,30 +7233,40 @@ const ${constDef.name}: ${typeDef} = ${body};
         index++;
         let bodyParts = tokens.slice(index);
         let block = tokens_1.tokensToString(bodyParts);
+        const lines = block.split("\n");
+        const letStart = lines.findIndex((line) => line.startsWith("    let") && line.endsWith("let"));
+        const letEnd = lines.findIndex((line) => line.startsWith("    in") && line.endsWith("in"));
+        let letBlock = [];
+        if (letStart > -1 && letEnd > -1) {
+          const letLines = lines.slice(letStart + 1, letEnd).map((line) => line.slice(8));
+          const letBlocks = blocks_1.intoBlocks(letLines.join("\n"));
+          letBlock = letBlocks.map(parseBlock).filter((block2) => block2.kind === "ok").map((block2) => block2.value);
+        }
         const parsedType = parseType(constType);
-        const bodyLines = block;
-        const init = {
-          pieces: [],
-          hasSeenText: false
-        };
-        const body = bodyLines.split("=").slice(1).join("=").split("\n").reduce((obj, line) => {
-          const { pieces, hasSeenText } = obj;
-          if (hasSeenText) {
-            pieces.push(line);
-            return { pieces, hasSeenText };
-          } else if (line.trim().length === 0) {
-            return { pieces, hasSeenText };
+        const body = [];
+        const split = block.split("\n");
+        const start = letEnd > -1 ? letEnd + 1 : 0;
+        let seenEquals = false;
+        for (let i = start; i < split.length; i++) {
+          if (seenEquals) {
+            body.push(split[i]);
           } else {
-            pieces.push(line);
-            return { pieces, hasSeenText: true };
+            if (split[i].indexOf("=") === -1) {
+              body.push(split[i]);
+            } else {
+              body.push(split[i].split("=").slice(1).join("="));
+              seenEquals = true;
+            }
           }
-        }, init).pieces.join("\n");
-        const parsedBody = parseExpression(body);
-        if (parsedBody.kind === "err")
-          return parsedBody;
-        if (parsedType.kind === "err")
-          return parsedType;
-        return result_1.Ok(types_1.Const(constName, parsedType.value, parsedBody.value));
+        }
+        const parsedBody = parseExpression(body.join("\n"));
+        if (parsedBody.kind === "err") {
+          return result_1.mapError((error) => `Failed to parse body due to ${error}`, parsedBody);
+        }
+        if (parsedType.kind === "err") {
+          return result_1.mapError((error) => `Failed to parse type due to ${error}`, parsedType);
+        }
+        return result_1.Ok(types_1.Const(constName, parsedType.value, letBlock, parsedBody.value));
       }
       function parseImport(tokens) {
         const imports = [];
@@ -7890,7 +7944,7 @@ ${definitions.join("\n\n")}
         this.shadowRoot.appendChild(this.container);
       }
       this.editor = new codeflask_module_default(this.container, {
-        language: "markdown",
+        language: "derw",
         rtl: false,
         tabSize: 4,
         enableAutocorrect: false,
@@ -7966,7 +8020,7 @@ ${definitions.join("\n\n")}
 ${generated}`;
         }
         if (generated.length > 0) {
-          output.setAttribute("language", "markdown");
+          output.setAttribute("language", "javascript");
           output.value = generated;
         }
       }
