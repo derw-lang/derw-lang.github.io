@@ -7965,7 +7965,7 @@ ${definitions.join("\n\n")}
           pattern: /(["'`])(?:\\(?:\r\n|[\s\S])|(?!\1)[^\\\r\n])*\1/,
           greedy: true
         },
-        keyword: /import|as|exposing|let|in|if|then|else|type|alias/,
+        keyword: /import|as|exposing|let|in|do|return|if|then|else|type|alias/,
         boolean: /\b(?: true | false) \b /,
         function: null,
         number: /\b0x[\da-f]+\b|(?:\b\d+(?:\.\d*)?|\B\.\d+)(?:e[+-]?\d+)?/i,
