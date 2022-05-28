@@ -5,21 +5,18 @@
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
-  var __reExport = (target, module, copyDefault, desc) => {
-    if (module && typeof module === "object" || typeof module === "function") {
-      for (let key of __getOwnPropNames(module))
-        if (!__hasOwnProp.call(target, key) && (copyDefault || key !== "default"))
-          __defProp(target, key, { get: () => module[key], enumerable: !(desc = __getOwnPropDesc(module, key)) || desc.enumerable });
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
     }
-    return target;
+    return to;
   };
-  var __toESM = (module, isNodeMode) => {
-    return __reExport(__markAsModule(__defProp(module != null ? __create(__getProtoOf(module)) : {}, "default", !isNodeMode && module && module.__esModule ? { get: () => module.default, enumerable: true } : { value: module, enumerable: true })), module);
-  };
+  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target, mod));
 
   // node_modules/derw/build/types.js
   var require_types = __commonJS({
@@ -27,7 +24,7 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Import = exports.ImportModule = exports.Const = exports.Function = exports.isLeftPipeableExpression = exports.isSimpleValue = exports.GreaterThanOrEqual = exports.GreaterThan = exports.LessThanOrEqual = exports.LessThan = exports.InEquality = exports.Equality = exports.CaseStatement = exports.Branch = exports.ListDestructure = exports.EmptyList = exports.Default = exports.LambdaCall = exports.Lambda = exports.FunctionCall = exports.ModuleReference = exports.RightPipe = exports.LeftPipe = exports.ListPrepend = exports.Or = exports.And = exports.Division = exports.Multiplication = exports.Subtraction = exports.Addition = exports.IfStatement = exports.Constructor = exports.Destructure = exports.FormatStringValue = exports.ListRange = exports.ListValue = exports.StringValue = exports.ObjectLiteral = exports.Field = exports.Value = exports.AnonFunctionArg = exports.FunctionArg = exports.TypeAlias = exports.Property = exports.UnionType = exports.Tag = exports.TagArg = exports.FunctionType = exports.FixedType = exports.GenericType = void 0;
-      exports.contextModuleToModule = exports.ContextModule = exports.Module = exports.UnparsedBlock = exports.MultilineComment = exports.Comment = exports.Export = void 0;
+      exports.contextModuleToModule = exports.ContextModule = exports.Module = exports.DoBlock = exports.UnparsedBlock = exports.MultilineComment = exports.Comment = exports.Export = void 0;
       function GenericType(name) {
         return {
           kind: "GenericType",
@@ -412,14 +409,15 @@
         ].indexOf(expression.kind) > -1;
       }
       exports.isLeftPipeableExpression = isLeftPipeableExpression;
-      function Function(name, returnType, args, letBody, body) {
+      function Function(name, returnType, args, letBody, body, doBody) {
         return {
           kind: "Function",
           name,
           returnType,
           args,
           letBody,
-          body
+          body,
+          doBody: doBody ? doBody : null
         };
       }
       exports.Function = Function;
@@ -477,6 +475,13 @@
         };
       }
       exports.UnparsedBlock = UnparsedBlock;
+      function DoBlock(expressions) {
+        return {
+          kind: "DoBlock",
+          expressions
+        };
+      }
+      exports.DoBlock = DoBlock;
       function Module(name, body, errors) {
         return {
           kind: "Module",
@@ -969,6 +974,32 @@ ${common_1.prefixLines(branches.join("\n\n"), 4)}
             return generateGreaterThanOrEqual(expression);
         }
       }
+      function generateDoBlock(doBody) {
+        const lines = [];
+        for (const expression of doBody.expressions) {
+          switch (expression.kind) {
+            case "Const": {
+              lines.push(generateConst(expression));
+              break;
+            }
+            case "Function": {
+              lines.push(generateFunction(expression));
+              break;
+            }
+            case "FunctionCall": {
+              lines.push(generateFunctionCall(expression));
+              break;
+            }
+            case "ModuleReference": {
+              lines.push(generateModuleReference(expression));
+              break;
+            }
+          }
+        }
+        return `do
+${common_1.prefixLines(lines.join("\n"), 4)}
+return`;
+      }
       function generateFunction(function_) {
         const functionArgumentsTypes = function_.args.map((arg) => {
           switch (arg.kind) {
@@ -987,12 +1018,13 @@ ${common_1.prefixLines(branches.join("\n\n"), 4)}
           }
         }).join(" ");
         const maybeLetBody = function_.letBody.length > 0 ? common_1.prefixLines("\nlet", 4) + "\n" + common_1.prefixLines(function_.letBody.map(generateBlock).join("\n\n"), 8) + common_1.prefixLines("\nin", 4) : "";
+        const maybeDoBody = function_.doBody === null ? "" : "\n" + common_1.prefixLines(generateDoBlock(function_.doBody), 4);
         const returnType = generateTopLevelType(function_.returnType);
         const body = generateExpression(function_.body);
-        const prefixedBody = common_1.prefixLines(body, maybeLetBody === "" ? 4 : 8);
+        const prefixedBody = common_1.prefixLines(body, maybeLetBody === "" && maybeDoBody === "" ? 4 : 8);
         return `
 ${function_.name}: ${functionArgumentsTypes} -> ${returnType}
-${function_.name} ${functionArguments} =${maybeLetBody}
+${function_.name} ${functionArguments} =${maybeLetBody}${maybeDoBody}
 ${prefixedBody}
 `.trim();
       }
@@ -3068,6 +3100,30 @@ ${body}
             return generateGreaterThanOrEqual(expression);
         }
       }
+      function generateDoBlock(doBody) {
+        const lines = [];
+        for (const expression of doBody.expressions) {
+          switch (expression.kind) {
+            case "Const": {
+              lines.push(generateConst(expression));
+              break;
+            }
+            case "Function": {
+              lines.push(generateFunction(expression));
+              break;
+            }
+            case "FunctionCall": {
+              lines.push(generateFunctionCall(expression) + ";");
+              break;
+            }
+            case "ModuleReference": {
+              lines.push(generateModuleReference(expression) + ";");
+              break;
+            }
+          }
+        }
+        return lines.join("\n");
+      }
       function generateFunction(function_) {
         const functionArguments = function_.args.map((arg) => {
           switch (arg.kind) {
@@ -3079,12 +3135,13 @@ ${body}
         }).join(", ");
         const isSimpleBody = types_1.isSimpleValue(function_.body.kind);
         const maybeLetBody = function_.letBody.length > 0 ? "\n" + common_1.prefixLines(function_.letBody.map(generateBlock).join("\n"), 4) : "";
+        const maybeDoBody = function_.doBody === null ? "" : "\n" + common_1.prefixLines(generateDoBlock(function_.doBody), 4);
         const bodyPrefix = isSimpleBody ? "return " : "";
         const bodySuffix = isSimpleBody ? ";" : "";
         const body = bodyPrefix + generateExpression(function_.body) + bodySuffix;
         const prefixedBody = common_1.prefixLines(body, 4);
         return `
-function ${function_.name}(${functionArguments}) {${maybeLetBody}
+function ${function_.name}(${functionArguments}) {${maybeLetBody}${maybeDoBody}
 ${prefixedBody}
 }`.trim();
       }
@@ -3810,6 +3867,30 @@ ${body}
           }
         }
       }
+      function generateDoBlock(doBody, parentTypeArguments, parentTypes) {
+        const lines = [];
+        for (const expression of doBody.expressions) {
+          switch (expression.kind) {
+            case "Const": {
+              lines.push(generateConst(expression));
+              break;
+            }
+            case "Function": {
+              lines.push(generateFunction(expression, parentTypeArguments, parentTypes));
+              break;
+            }
+            case "FunctionCall": {
+              lines.push(generateFunctionCall(expression, parentTypeArguments, parentTypes) + ";");
+              break;
+            }
+            case "ModuleReference": {
+              lines.push(generateModuleReference(expression) + ";");
+              break;
+            }
+          }
+        }
+        return lines.join("\n");
+      }
       function generateFunction(function_, parentTypeArguments, parentTypes) {
         const functionArguments = function_.args.map((arg) => {
           switch (arg.kind) {
@@ -3824,6 +3905,7 @@ ${body}
           ...typeArguments,
           ...parentTypeArguments
         ])).join("\n"), 4) : "";
+        const maybeDoBody = function_.doBody === null ? "" : "\n" + common_1.prefixLines(generateDoBlock(function_.doBody, parentTypeArguments, parentTypes), 4);
         const returnType = generateTopLevelType(function_.returnType);
         const isSimpleBody = types_1.isSimpleValue(function_.body.kind);
         const bodyPrefix = isSimpleBody ? "return " : "";
@@ -3832,7 +3914,7 @@ ${body}
         const prefixedBody = common_1.prefixLines(body, 4);
         const typeArgumentsString = typeArguments.length === 0 ? "" : `<${typeArguments.join(", ")}>`;
         return `
-function ${function_.name}${typeArgumentsString}(${functionArguments}): ${returnType} {${maybeLetBody}
+function ${function_.name}${typeArgumentsString}(${functionArguments}): ${returnType} {${maybeLetBody}${maybeDoBody}
 ${prefixedBody}
 }`.trim();
       }
@@ -4053,7 +4135,9 @@ const ${constDef.name}: ${typeDef} = ${body};
         "let",
         "in",
         "case",
-        "of"
+        "of",
+        "do",
+        "return"
       ];
       function StringToken(body) {
         return {
@@ -7099,6 +7183,76 @@ const ${constDef.name}: ${typeDef} = ${body};
         return result_1.Err(`No expression found: '${body}'`);
       }
       exports.parseExpression = parseExpression;
+      function parseDoBlock(tokens) {
+        const expressions = [];
+        let currentBuffer = [];
+        function parseDoExpression(currentBuffer2) {
+          const asString = tokens_1.tokensToString(currentBuffer2);
+          const asBlock = blocks_1.intoBlocks(asString);
+          if (asBlock.length > 0 && asBlock[0].kind !== "UnknownBlock") {
+            for (const block of asBlock) {
+              if (block.kind === "CommentBlock") {
+                continue;
+              }
+              if (block.kind === "ConstBlock" || block.kind === "FunctionBlock") {
+                expressions.push(parseBlock(block));
+              } else {
+                expressions.push(result_1.Err(`Got unexpected block in do: ${block.kind}`));
+              }
+            }
+          } else {
+            const expression = parseExpression(tokens_1.tokensToString(currentBuffer2));
+            if (expression.kind === "ok" && (expression.value.kind === "FunctionCall" || expression.value.kind === "ModuleReference")) {
+              expressions.push(expression);
+            }
+            if (expression.kind === "err") {
+              expressions.push(expression);
+            }
+          }
+        }
+        for (const token of tokens.slice(1)) {
+          switch (token.kind) {
+            case "IdentifierToken": {
+              currentBuffer.push(token);
+              break;
+            }
+            case "StringToken": {
+              currentBuffer.push(token);
+              break;
+            }
+            case "WhitespaceToken": {
+              if (token.body.indexOf("\n\n") > -1) {
+                parseDoExpression(currentBuffer);
+                currentBuffer = [];
+              } else {
+                currentBuffer.push(token);
+              }
+              break;
+            }
+            default: {
+              currentBuffer.push(token);
+              break;
+            }
+          }
+        }
+        if (currentBuffer.length > 0) {
+          parseDoExpression(currentBuffer);
+        }
+        const errors = expressions.filter((e) => e.kind === "err").map((e) => e.error).join("\n");
+        if (errors) {
+          return result_1.Err(errors);
+        }
+        const values = expressions.filter((e) => e.kind === "ok").map((e) => e.value);
+        return result_1.Ok(types_1.DoBlock(values));
+      }
+      function isTokenAtIndentLevel(currentToken, previousToken, tokenName, level) {
+        if (previousToken.kind === "WhitespaceToken") {
+          const lineSplits = previousToken.body.split("\n");
+          const endsWithFourIndents = lineSplits[lineSplits.length - 1] === " ".repeat(level);
+          return currentToken.kind === "KeywordToken" && currentToken.body === tokenName && endsWithFourIndents;
+        }
+        return false;
+      }
       function parseFunction(tokens) {
         if (tokens[0].kind !== "IdentifierToken") {
           return result_1.Err("Expected identfier, got " + tokens[0].kind);
@@ -7114,6 +7268,9 @@ const ${constDef.name}: ${typeDef} = ${body};
           }
           index++;
         }
+        const doIndex = tokens.findIndex((t) => t.kind === "KeywordToken" && t.body === "do");
+        const doReturnIndex = tokens.findIndex((t) => t.kind === "KeywordToken" && t.body === "return");
+        const doBody = doIndex > -1 ? parseDoBlock(tokens.slice(doIndex + 1, doReturnIndex)) : void 0;
         index++;
         const lastIndex = index;
         let currentType = [];
@@ -7138,31 +7295,54 @@ const ${constDef.name}: ${typeDef} = ${body};
             break;
           index++;
         }
+        if (doIndex > -1) {
+          index = doReturnIndex + 1;
+        }
         const tokenizedTypes = tokens_1.tokenizeType(currentType);
         if (tokenizedTypes.kind === "err")
           return tokenizedTypes;
         const types = tokenizedTypes.value;
-        const bodyTokens = tokens.slice(index);
-        const block = tokens_1.tokensToString(bodyTokens);
-        const lines = block.split("\n");
-        const letStart = lines.findIndex((line) => line.startsWith("    let") && line.endsWith("let"));
-        const letEnd = lines.findIndex((line) => line.startsWith("    in") && line.endsWith("in"));
+        const letStart = tokens.findIndex((t, i) => {
+          const previous = tokens[i - 1];
+          if (!previous)
+            return false;
+          return isTokenAtIndentLevel(t, previous, "let", 4);
+        });
+        const letEnd = tokens.findIndex((t, i) => {
+          const previous = tokens[i - 1];
+          if (!previous)
+            return false;
+          return isTokenAtIndentLevel(t, previous, "in", 4);
+        });
         let letBlock = [];
         if (letStart > -1 && letEnd > -1) {
-          const letLines = lines.slice(letStart + 1, letEnd).map((line) => line.slice(8));
+          const firstPastWhitespace = tokens.slice(letStart + 1).findIndex((t) => t.kind !== "WhitespaceToken");
+          const letTokens = tokens.slice(letStart + firstPastWhitespace + 1, letEnd);
+          const letLines = (" ".repeat(8) + tokens_1.tokensToString(letTokens)).split("\n").map((line) => line.slice(8));
           const letBlocks = blocks_1.intoBlocks(letLines.join("\n"));
-          letBlock = letBlocks.map(parseBlock).filter((block2) => block2.kind === "ok").map((block2) => block2.value);
+          letBlock = letBlocks.map(parseBlock).filter((block) => block.kind === "ok").map((block) => block.value);
         }
-        const argumentLine = lines[0];
+        const argumentLine = tokens_1.tokensToString(tokens.slice(lastIndex)).split("\n")[1];
+        if (!argumentLine) {
+          return result_1.Err(`No arguments found in function definition.
+Functions should look like:
+\`\`\`
+foo: string -> string
+foo name =
+    "Hi! " + name
+\`\`\`
+But I seemed to only find the \`foo: string -> string\` line.
+`);
+        }
         const argumentNames = argumentLine.slice(functionName.length).split("=")[0].split(" ").map((s) => s.trim()).filter((s) => s.length > 0);
-        const combinedArguments = types.slice(0, types.length - 1).map((type_, i2) => {
-          if (argumentNames.length <= i2) {
+        const combinedArguments = types.slice(0, types.length - 1).map((type_, i) => {
+          if (argumentNames.length <= i) {
             const parsedType = parseRootTypeTokens(type_);
             if (parsedType.kind === "err")
-              return result_1.Err(`Failed to parse argument ${i2} due to ${parsedType.error}`);
-            return result_1.Ok(types_1.AnonFunctionArg(i2, parsedType.value));
+              return result_1.Err(`Failed to parse argument ${i} due to ${parsedType.error}`);
+            return result_1.Ok(types_1.AnonFunctionArg(i, parsedType.value));
           } else {
-            const name = argumentNames[i2];
+            const name = argumentNames[i];
             const parsedType = parseRootTypeTokens(type_);
             if (parsedType.kind === "err")
               return result_1.Err(`Failed to parse ${name} due to ${parsedType.error}`);
@@ -7171,18 +7351,29 @@ const ${constDef.name}: ${typeDef} = ${body};
         });
         const returnParts = types[types.length - 1];
         const returnType = parseRootTypeTokens(returnParts);
-        const body = [argumentLine.split("=").slice(1).join("=").trim()].concat(block.split("\n").slice(letEnd > -1 ? letEnd + 1 : 1));
+        let bodyStart = tokens.findIndex((t) => t.kind === "AssignToken") + 1;
+        let body = tokens_1.tokensToString(tokens.slice(bodyStart)).split("\n");
+        if (letEnd > -1) {
+          body = tokens_1.tokensToString(tokens.slice(letEnd + 1)).split("\n");
+        }
+        if (doIndex > -1) {
+          bodyStart = doReturnIndex + 1;
+          body = tokens_1.tokensToString(tokens.slice(bodyStart)).split("\n");
+        }
         const parsedBody = parseExpression(body.join("\n"));
-        if (parsedBody.kind === "err")
-          return parsedBody;
-        if (returnType.kind === "err")
-          return returnType;
-        for (var i = 0; i < combinedArguments.length; i++) {
-          const arg = combinedArguments[i];
+        if (parsedBody.kind === "err") {
+          return result_1.Err(`Failed to parse function body due to ${parsedBody.error}`);
+        }
+        if (returnType.kind === "err") {
+          return result_1.Err(`Failed to parse function return type due to ${returnType.error}`);
+        }
+        if (doBody !== void 0 && doBody.kind === "err")
+          return doBody;
+        for (const arg of combinedArguments) {
           if (arg.kind === "err")
             return arg;
         }
-        return result_1.Ok(types_1.Function(functionName, returnType.value, combinedArguments.map((arg) => arg.value), letBlock, parsedBody.value));
+        return result_1.Ok(types_1.Function(functionName, returnType.value, combinedArguments.map((arg) => arg.value), letBlock, parsedBody.value, doBody === void 0 ? void 0 : doBody.value));
       }
       function parseConst(tokens) {
         if (tokens[0].kind !== "IdentifierToken") {
