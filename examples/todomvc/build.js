@@ -121,7 +121,7 @@
         }
       }
       exports.withDefault = withDefault2;
-      function map3(func, maybeValue) {
+      function map4(func, maybeValue) {
         switch (maybeValue.kind) {
           case "just":
             return Just2(func(maybeValue.value));
@@ -129,7 +129,7 @@
             return maybeValue;
         }
       }
-      exports.map = map3;
+      exports.map = map4;
       function map22(func, firstMaybeValue, secondMaybeValue) {
         switch (firstMaybeValue.kind) {
           case "just":
@@ -163,7 +163,7 @@
         }
       }
       exports.map3 = map32;
-      function andThen(func, maybeValue) {
+      function andThen2(func, maybeValue) {
         switch (maybeValue.kind) {
           case "just":
             return func(maybeValue.value);
@@ -171,7 +171,7 @@
             return Nothing2();
         }
       }
-      exports.andThen = andThen;
+      exports.andThen = andThen2;
     }
   });
 
@@ -260,7 +260,7 @@
         }
       }
       exports.fromMaybe = fromMaybe;
-      function map3(func, result) {
+      function map4(func, result) {
         switch (result.kind) {
           case "ok":
             return Ok(func(result.value));
@@ -268,7 +268,7 @@
             return result;
         }
       }
-      exports.map = map3;
+      exports.map = map4;
       function map22(func, firstResult, secondResult) {
         switch (firstResult.kind) {
           case "ok":
@@ -311,7 +311,7 @@
         }
       }
       exports.mapError = mapError;
-      function andThen(func, result) {
+      function andThen2(func, result) {
         switch (result.kind) {
           case "ok":
             return func(result.value);
@@ -319,7 +319,7 @@
             return result;
         }
       }
-      exports.andThen = andThen;
+      exports.andThen = andThen2;
     }
   });
 
@@ -696,7 +696,7 @@ ${whitespace}</${node3.tag}>`;
         }
       }
       exports.triggerEvent = triggerEvent;
-      function map3(tagger, tree) {
+      function map4(tagger, tree) {
         switch (tree.kind) {
           case "text":
             return tree;
@@ -708,11 +708,11 @@ ${whitespace}</${node3.tag}>`;
             return node2(tree.tag, tree.events.map((event) => {
               return on3(event.name, (data3) => tagger(event.tagger(data3)));
             }), tree.attributes, tree.children.map((child) => {
-              return map3(tagger, child);
+              return map4(tagger, child);
             }));
         }
       }
-      exports.map = map3;
+      exports.map = map4;
       function setAttributeOnElement(element, attribute5) {
         switch (attribute5.kind) {
           case "string":
@@ -1526,6 +1526,26 @@ ${whitespace}</${node3.tag}>`;
     return parseInt(str, radix);
   }
 
+  // derw-packages/derw-lang/stdlib/src/Task_kernel.ts
+  function runTask(task) {
+    task.promise.then();
+  }
+  function after(fn, time2) {
+    return {
+      promise: new Promise((resolve, reject) => {
+        setTimeout(() => resolve(fn()), time2);
+      })
+    };
+  }
+
+  // derw-packages/derw-lang/stdlib/src/Task.ts
+  function runTask2(task) {
+    return runTask(task);
+  }
+  function after2(fn, time2) {
+    return after(fn, time2);
+  }
+
   // derw-packages/derw-lang/web/src/LocalStorage.ts
   function setItem(name, value) {
     return globalThis.localStorage.setItem(name, value);
@@ -1581,9 +1601,9 @@ ${whitespace}</${node3.tag}>`;
       kind: "AddItem"
     }, args);
   }
-  function SetInput(args) {
+  function SetNewItemInput(args) {
     return __spreadValues({
-      kind: "SetInput"
+      kind: "SetNewItemInput"
     }, args);
   }
   function SetFilterMode(args) {
@@ -1601,13 +1621,24 @@ ${whitespace}</${node3.tag}>`;
       kind: "Edit"
     }, args);
   }
+  function CancelEdit(args) {
+    return __spreadValues({
+      kind: "CancelEdit"
+    }, args);
+  }
+  function Save(args) {
+    return __spreadValues({
+      kind: "Save"
+    }, args);
+  }
+  function Focus(args) {
+    return __spreadValues({
+      kind: "Focus"
+    }, args);
+  }
   function toggleListItem(itemToToggle, maybeItem) {
     if (itemToToggle.id === maybeItem.id) {
-      return {
-        id: maybeItem.id,
-        label: maybeItem.label,
-        completed: !maybeItem.completed
-      };
+      return __spreadProps(__spreadValues({}, maybeItem), { completed: !maybeItem.completed });
     } else {
       return maybeItem;
     }
@@ -1620,15 +1651,11 @@ ${whitespace}</${node3.tag}>`;
     return void 0;
   }
   function decodeItem(str) {
-    const split2 = split("-", str);
-    const _res109648666 = split2;
-    switch (_res109648666.length) {
-      case 0: {
-        return Nothing({});
-      }
-      case _res109648666.length: {
-        if (_res109648666.length >= 1) {
-          const [id, ...rest] = _res109648666;
+    const _res654347064 = split("-", str);
+    switch (_res654347064.length) {
+      case _res654347064.length: {
+        if (_res654347064.length >= 1) {
+          const [id, ...rest] = _res654347064;
           const _res3496916 = rest;
           switch (_res3496916.length) {
             case _res3496916.length: {
@@ -1687,6 +1714,24 @@ ${whitespace}</${node3.tag}>`;
       }
     }
   }
+  function filteredItems(filterMode, items) {
+    const _res1553269445 = filterMode;
+    switch (_res1553269445.kind) {
+      case "All": {
+        return items;
+      }
+      case "Active": {
+        return filter(function(item) {
+          return !item.completed;
+        }, items);
+      }
+      case "Completed": {
+        return filter(function(item) {
+          return item.completed;
+        }, items);
+      }
+    }
+  }
   function update(msg, model, send) {
     const _res108417 = msg;
     switch (_res108417.kind) {
@@ -1702,11 +1747,10 @@ ${whitespace}</${node3.tag}>`;
         return __spreadProps(__spreadValues({}, model), { list: updatedItems });
       }
       case "ToggleCompleted": {
-        let toggler = function(x) {
-          return toggleListItem(item, x);
-        };
         const { item } = _res108417;
-        const updatedItems = map2(toggler, model.list);
+        const updatedItems = map2(function(x) {
+          return toggleListItem(item, x);
+        }, model.list);
         const store = storeListItems(updatedItems);
         return __spreadProps(__spreadValues({}, model), { list: updatedItems });
       }
@@ -1742,7 +1786,7 @@ ${whitespace}</${node3.tag}>`;
         }
         ;
       }
-      case "SetInput": {
+      case "SetNewItemInput": {
         const { input: input3 } = _res108417;
         return __spreadProps(__spreadValues({}, model), { input: input3 });
       }
@@ -1757,53 +1801,126 @@ ${whitespace}</${node3.tag}>`;
       }
       case "Edit": {
         const { item } = _res108417;
+        const focus = runTask2(after2(function(_) {
+          return send(Focus({}));
+        }, 30));
         return __spreadProps(__spreadValues({}, model), { editing: Just({ value: item }) });
       }
-    }
-  }
-  function onSubmit(event) {
-    globalThis.console.log(event);
-    const label3 = event.target.value;
-    if (event.keyCode === 13) {
-      return AddItem({ label: event.target.value });
-    } else {
-      return SetInput({ input: label3 });
+      case "CancelEdit": {
+        return __spreadProps(__spreadValues({}, model), { editing: Nothing({}) });
+      }
+      case "Focus": {
+        const element = document.getElementById("editor");
+        const focus = element.focus();
+        return model;
+      }
+      case "Save": {
+        let updater = function(currentItem) {
+          if (currentItem.id === item.id) {
+            return item;
+          } else {
+            return currentItem;
+          }
+        };
+        const { item } = _res108417;
+        const updatedItems = map2(updater, model.list);
+        const maybeWithoutItem = item.label.trim() === "" ? filter(function(x) {
+          return x.id !== item.id;
+        }, updatedItems) : updatedItems;
+        const store = storeListItems(maybeWithoutItem);
+        return __spreadProps(__spreadValues({}, model), {
+          editing: Nothing({}),
+          list: maybeWithoutItem
+        });
+      }
     }
   }
   function viewHeader(model) {
-    return header2([], [class_2("header")], [h12([], [], [text2("todos")]), input2([onWithOptions("keydown", onSubmit, false, false)], [class_2("new-todo"), attribute2("placeholder", "What needs to be done?"), attribute2("autofocus", "true"), attribute2("value", model.input)])]);
-  }
-  function viewListItem(item) {
-    const className = item.completed ? "completed" : "";
-    return li2([], [class_2(className)], [div2([], [class_2("view")], [input2([onWithOptions("click", function(_) {
-      return ToggleCompleted({ item });
-    }, false, false)], [class_2("toggle"), attribute2("type", "checkbox"), booleanAttribute2("checked", item.completed)]), label2([], [], [text2(item.label)]), button2([onClick(function(_) {
-      return DestroyItem({ item });
-    })], [class_2("destroy")], [])]), input2([onWithOptions("doubleclick", function(_) {
-      return Edit({ item });
-    }, false, false)], [class_2("edit"), attribute2("value", "Hmm")])]);
-  }
-  function filteredItems(filterMode, items) {
-    const _res1553269445 = filterMode;
-    switch (_res1553269445.kind) {
-      case "All": {
-        return items;
-      }
-      case "Active": {
-        return filter(function(item) {
-          return !item.completed;
-        }, items);
-      }
-      case "Completed": {
-        return filter(function(item) {
-          return item.completed;
-        }, items);
+    function onKeydown(event) {
+      if (event.key === "Enter") {
+        return AddItem({ label: event.target.value });
+      } else {
+        return SetNewItemInput({ input: event.target.value });
       }
     }
+    return header2([], [class_2("header")], [h12([], [], [text2("todos")]), input2([onWithOptions("keydown", onKeydown, false, false)], [class_2("new-todo"), attribute2("placeholder", "What needs to be done?"), attribute2("autofocus", "true"), attribute2("value", model.input)])]);
+  }
+  function viewListItem(model, item) {
+    const className = function() {
+      const _res887932883 = model.editing;
+      switch (_res887932883.kind) {
+        case "Just": {
+          const { value } = _res887932883;
+          if (value.id === item.id) {
+            return "editing";
+          } else {
+            if (item.completed) {
+              return "completed";
+            } else {
+              return "";
+            }
+            ;
+          }
+          ;
+        }
+        case "Nothing": {
+          if (item.completed) {
+            return "completed";
+          } else {
+            return "";
+          }
+          ;
+        }
+      }
+    }();
+    const editingText = function() {
+      const _res887932883 = model.editing;
+      switch (_res887932883.kind) {
+        case "Just": {
+          const { value } = _res887932883;
+          return value.label;
+        }
+        case "Nothing": {
+          return "";
+        }
+      }
+    }();
+    function onEdit(event) {
+      return Edit({ item: __spreadProps(__spreadValues({}, item), { label: event.target.value }) });
+    }
+    function onSave(event) {
+      const _res887932883 = model.editing;
+      switch (_res887932883.kind) {
+        case "Nothing": {
+          return Save({ item });
+        }
+        case "Just": {
+          const { value } = _res887932883;
+          return Save({ item: __spreadProps(__spreadValues({}, value), { label: event.target.value }) });
+        }
+      }
+    }
+    function onKeydown(event) {
+      if (event.key === "Enter") {
+        return onSave(event);
+      } else {
+        return Edit({ item: __spreadProps(__spreadValues({}, item), { label: event.target.value }) });
+      }
+    }
+    const viewItemLabel = label2([onWithOptions("dblclick", function(_) {
+      return Edit({ item });
+    }, false, false)], [], [text2(item.label)]);
+    return li2([], [class_2(className)], [div2([], [class_2("view")], [input2([onWithOptions("click", function(_) {
+      return ToggleCompleted({ item });
+    }, false, false)], [class_2("toggle"), attribute2("type", "checkbox"), booleanAttribute2("checked", item.completed)]), viewItemLabel, button2([onClick(function(_) {
+      return DestroyItem({ item });
+    })], [class_2("destroy")], [])]), input2([onWithOptions("keydown", onKeydown, false, false), on2("blur", onSave)], [class_2("edit"), attribute2("id", "editor"), attribute2("value", editingText)])]);
   }
   function viewList(model) {
     const items = filteredItems(model.filterMode, model.list);
-    return ul2([], [class_2("todo-list")], map2(viewListItem, items));
+    return ul2([], [class_2("todo-list")], map2(function(item) {
+      return viewListItem(model, item);
+    }, items));
   }
   function viewMain(model) {
     return section2([], [class_2("main")], [input2([onWithOptions("click", function(event) {
@@ -1867,12 +1984,21 @@ ${whitespace}</${node3.tag}>`;
   var root = document.getElementById("root");
   var main2 = function() {
     const filterMode = urlParser(window.location.hash);
-    return program2({
+    const p2 = program2({
       initialModel: __spreadProps(__spreadValues({}, initialModel), { filterMode }),
       view,
       update,
       root
     });
+    function canceller(event) {
+      if (event.key === "Escape") {
+        return p2.send(CancelEdit({}));
+      } else {
+        return void 0;
+      }
+    }
+    const attach = document.addEventListener("keydown", canceller);
+    return p2;
   }();
   function urlParser(path) {
     const _res3433509 = path;
