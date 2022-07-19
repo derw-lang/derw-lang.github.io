@@ -5,18 +5,21 @@
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
-  var __copyProps = (to, from, except, desc) => {
-    if (from && typeof from === "object" || typeof from === "function") {
-      for (let key of __getOwnPropNames(from))
-        if (!__hasOwnProp.call(to, key) && key !== except)
-          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  var __reExport = (target, module, copyDefault, desc) => {
+    if (module && typeof module === "object" || typeof module === "function") {
+      for (let key of __getOwnPropNames(module))
+        if (!__hasOwnProp.call(target, key) && (copyDefault || key !== "default"))
+          __defProp(target, key, { get: () => module[key], enumerable: !(desc = __getOwnPropDesc(module, key)) || desc.enumerable });
     }
-    return to;
+    return target;
   };
-  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target, mod));
+  var __toESM = (module, isNodeMode) => {
+    return __reExport(__markAsModule(__defProp(module != null ? __create(__getProtoOf(module)) : {}, "default", !isNodeMode && module && module.__esModule ? { get: () => module.default, enumerable: true } : { value: module, enumerable: true })), module);
+  };
 
   // node_modules/derw/build/types.js
   var require_types = __commonJS({
@@ -8219,6 +8222,12 @@ ${generated}`;
     onModeUpdate() {
       this.renderCode(this.getAttribute("value") || "");
     }
+    format() {
+      const code = this.getAttribute("value") || "";
+      const parsed = (0, import_parser.parse)(code, "Main");
+      const generated = (0, import_derw.generateDerw)(parsed);
+      this.value = generated;
+    }
     disconnectedCallback() {
       var _a;
       (_a = this.editor) == null ? void 0 : _a.destroy();
@@ -8270,13 +8279,19 @@ ${generated}`;
         break;
       }
       case "english": {
-        console.log("Switched mode to english");
         (_e = document.getElementById("view-english")) == null ? void 0 : _e.classList.toggle("active");
         break;
       }
     }
   }
+  function format() {
+    const editor = document.getElementById("code-editor");
+    if (editor) {
+      editor.format();
+    }
+  }
   window.view = (value) => setMode(value);
+  window.format = format;
 
   // src/Main.ts
   var main = newEditor("root");
